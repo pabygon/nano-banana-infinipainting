@@ -253,8 +253,12 @@ export function TileGenerateModal({ open, onClose, x, y, z, onUpdate }: TileGene
     <Dialog.Root open={open} onOpenChange={handleClose}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10000]" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-xl p-0 w-[min(100vw,800px)] max-h-[90vh] overflow-auto z-[10001]">
-          <div className="flex flex-col h-full">
+        <Dialog.Content 
+          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-xl p-0 w-[min(100vw,800px)] max-h-[90vh] overflow-auto z-[10001]"
+          data-modal="tile-generate"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex flex-col h-full" onClick={(e) => e.stopPropagation()}>
             <div className="px-4 pt-4">
               <Dialog.Title className="text-lg">Generate Preview</Dialog.Title>
               <Dialog.Description className="text-xs mb-3">
@@ -262,7 +266,7 @@ export function TileGenerateModal({ open, onClose, x, y, z, onUpdate }: TileGene
               </Dialog.Description>
             </div>
 
-            <div className="px-4 pb-4 space-y-4 flex-1">
+            <div className="px-4 pb-4 space-y-4 flex-1" onClick={(e) => e.stopPropagation()}>
               {/* Prompt area with circular generate CTA */}
               <div className="space-y-2">
                 <div className="relative">
@@ -270,6 +274,7 @@ export function TileGenerateModal({ open, onClose, x, y, z, onUpdate }: TileGene
                     id="prompt"
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
                     placeholder="Describe what you want to generate..."
                     className="min-h-[64px] w-full resize-y rounded-xl border border-gray-300 px-3 py-2 pr-12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
                     rows={3}
@@ -295,7 +300,7 @@ export function TileGenerateModal({ open, onClose, x, y, z, onUpdate }: TileGene
               </div>
 
               {/* Tabs: Original vs Preview */}
-              <div className="space-y-2">
+              <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
                 <Tabs.Root value={activeTab} onValueChange={setActiveTab}>
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium">Image View</span>
@@ -443,7 +448,7 @@ export function TileGenerateModal({ open, onClose, x, y, z, onUpdate }: TileGene
               </div>
 
               {/* Footer */}
-              <div className="px-0 pb-0">
+              <div className="px-0 pb-0" onClick={(e) => e.stopPropagation()}>
                 <div className="flex w-full items-center justify-end gap-2">
                   <button
                     onClick={handleClose}

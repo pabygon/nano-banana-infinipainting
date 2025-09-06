@@ -30,6 +30,31 @@ export default function MapClient() {
     const onPointerDown = (e: PointerEvent) => {
       if (!selectedTileRef.current) return;
       if (menuRef.current && menuRef.current.contains(e.target as Node)) return;
+      
+      // Check if click is inside a modal/dialog (Radix UI portals)
+      const target = e.target as Element;
+      const isInModal = target.closest('[data-radix-dialog-content]') || 
+                       target.closest('[role="dialog"]') || 
+                       target.closest('[data-modal]') ||
+                       target.closest('[data-radix-alert-dialog-content]') ||
+                       target.closest('[data-radix-dropdown-content]') ||
+                       target.closest('[data-radix-tooltip-content]') ||
+                       // Check for high z-index elements (modals, dropdowns, etc.)
+                       (() => {
+                         let el = target as Element | null;
+                         while (el && el !== document.body) {
+                           const style = window.getComputedStyle(el);
+                           const zIndex = parseInt(style.zIndex);
+                           if (zIndex >= 10000) return true;
+                           el = el.parentElement;
+                         }
+                         return false;
+                       })();
+      
+      if (isInModal) {
+        return;
+      }
+      
       setSelectedTile(null);
       selectedTileRef.current = null;
       // Prevent the same click from immediately re-opening via map click
