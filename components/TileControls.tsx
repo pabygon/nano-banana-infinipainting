@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { TileGenerateModal } from "./TileGenerateModal";
@@ -12,12 +12,27 @@ interface TileControlsProps {
   onGenerate: (prompt: string) => Promise<void>;
   onRegenerate: (prompt: string) => Promise<void>;
   onDelete: () => Promise<void>;
+  onGenerateClick: () => void;
+  forceOpenModal?: boolean;
+  onModalOpenChange?: (open: boolean) => void;
 }
 
-export default function TileControls({ x, y, z, exists, onGenerate, onRegenerate, onDelete }: TileControlsProps) {
+export default function TileControls({ x, y, z, exists, onGenerate, onRegenerate, onDelete, onGenerateClick, forceOpenModal, onModalOpenChange }: TileControlsProps) {
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Handle forced modal opening from parent
+  useEffect(() => {
+    if (forceOpenModal) {
+      setGenerateModalOpen(true);
+    }
+  }, [forceOpenModal]);
+
+  const handleModalOpenChange = (open: boolean) => {
+    setGenerateModalOpen(open);
+    onModalOpenChange?.(open);
+  };
 
   const handleDelete = async () => {
     setLoading(true);
@@ -41,7 +56,7 @@ export default function TileControls({ x, y, z, exists, onGenerate, onRegenerate
               <button 
                 className="w-7 h-7 rounded border border-emerald-700 bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center transition-all hover:scale-110 hover:shadow-lg" 
                 title="Generate tile"
-                onClick={() => setGenerateModalOpen(true)}
+                onClick={onGenerateClick}
               >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -63,7 +78,7 @@ export default function TileControls({ x, y, z, exists, onGenerate, onRegenerate
                 <button 
                   className="w-7 h-7 rounded border border-blue-700 bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center transition-all hover:scale-110 hover:shadow-lg" 
                   title="Regenerate tile"
-                  onClick={() => setGenerateModalOpen(true)}
+                  onClick={onGenerateClick}
                 >
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <path d="M2 8a6 6 0 1 0 6-6v3m0-3L5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -130,7 +145,7 @@ export default function TileControls({ x, y, z, exists, onGenerate, onRegenerate
       {/* Generate/Regenerate Modal */}
       <TileGenerateModal
         open={generateModalOpen}
-        onClose={() => setGenerateModalOpen(false)}
+        onClose={() => handleModalOpenChange(false)}
         x={x}
         y={y}
         z={z}

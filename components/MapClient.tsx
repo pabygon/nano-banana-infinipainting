@@ -27,23 +27,36 @@ export default function MapClient() {
   // API Key management
   const { apiKeyState, setApiKey, getDecryptedApiKey, clearApiKey } = useClient();
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
-  const [currentPrompt, setCurrentPrompt] = useState<string>("");
+  const [forceOpenTileModal, setForceOpenTileModal] = useState(false);
 
   useEffect(() => {
     selectedTileRef.current = selectedTile;
   }, [selectedTile]);
 
-  // Show API key modal on initial visit if no API key is set
-  useEffect(() => {
-    if (!apiKeyState.apiKey) {
-      setShowApiKeyModal(true);
-    }
-  }, [apiKeyState.apiKey]);
+  // Removed automatic API key modal showing - now triggered only when generating
 
   // Handle clearing API key
   const handleClearApiKey = () => {
     clearApiKey();
     setShowApiKeyModal(true); // Show modal to enter new key
+  };
+
+  // Handle generate click - check API key before opening modal
+  const handleGenerateClick = () => {
+    if (!apiKeyState.apiKey) {
+      console.log('🔐 No API key found, showing API key modal');
+      setShowApiKeyModal(true);
+    } else {
+      console.log('🔐 API key found, opening tile generation modal');
+      setForceOpenTileModal(true);
+    }
+  };
+
+  // Handle tile modal state changes
+  const handleTileModalOpenChange = (open: boolean) => {
+    if (!open) {
+      setForceOpenTileModal(false);
+    }
   };
 
   // Close menu when clicking anywhere outside of it
@@ -120,21 +133,11 @@ export default function MapClient() {
 
   // Handle tile generation
   const handleGenerate = useCallback(async (x: number, y: number, prompt: string) => {
-    // Check if API key is set
-    if (!apiKeyState.apiKey) {
-      console.log('🔐 No API key in state, showing modal');
-      setCurrentPrompt(prompt);
-      setShowApiKeyModal(true);
-      return;
-    }
-
     try {
-      // Get decrypted API key
+      // Get decrypted API key - this will now be handled in TileGenerateModal
       const decryptedApiKey = await getDecryptedApiKey();
       if (!decryptedApiKey) {
         console.error('🔐 Failed to get decrypted API key for tile generation');
-        console.log('🔐 Current API key state:', apiKeyState);
-        setShowApiKeyModal(true);
         return;
       }
 
@@ -182,19 +185,11 @@ export default function MapClient() {
 
   // Handle tile regeneration
   const handleRegenerate = useCallback(async (x: number, y: number, prompt: string) => {
-    // Check if API key is set
-    if (!apiKeyState.apiKey) {
-      setCurrentPrompt(prompt);
-      setShowApiKeyModal(true);
-      return;
-    }
-
     try {
-      // Get decrypted API key
+      // Get decrypted API key - this will now be handled in TileGenerateModal
       const decryptedApiKey = await getDecryptedApiKey();
       if (!decryptedApiKey) {
         console.error('Failed to decrypt API key');
-        setShowApiKeyModal(true);
         return;
       }
 
@@ -587,6 +582,9 @@ export default function MapClient() {
               onGenerate={(prompt) => handleGenerate(selectedTile.x, selectedTile.y, prompt)}
               onRegenerate={(prompt) => handleRegenerate(selectedTile.x, selectedTile.y, prompt)}
               onDelete={() => handleDelete(selectedTile.x, selectedTile.y)}
+              onGenerateClick={handleGenerateClick}
+              forceOpenModal={forceOpenTileModal}
+              onModalOpenChange={handleTileModalOpenChange}
             />
           </div>
         </div>
@@ -599,14 +597,27 @@ export default function MapClient() {
         onSave={async (apiKey: string, provider: ApiProvider) => {
           await setApiKey(apiKey, provider);
           setShowApiKeyModal(false);
-          // If there was a pending prompt and selected tile, execute the generation now
-          if (currentPrompt && selectedTile) {
-            handleGenerate(selectedTile.x, selectedTile.y, currentPrompt);
-            setCurrentPrompt("");
-          }
+          // After setting API key, open the tile modal
+          setForceOpenTileModal(true);
         }}
       />
       
+      {/* Instructions message at bottom */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-[1100]">
+        <div className="bg-black/75 text-white px-4 py-2 rounded-lg text-sm max-w-md text-center backdrop-blur-sm">
+          <div className="flex items-center justify-center gap-2">
+            <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>
+              {map && map.getZoom() === MAX_Z ? 
+                "Click any tile to open generation menu" : 
+                "Zoom to max level → Click tile → Generate content"}
+            </span>
+          </div>
+        </div>
+      </div>
+
       <div ref={ref} className="w-full h-full" />
     </div>
   );
