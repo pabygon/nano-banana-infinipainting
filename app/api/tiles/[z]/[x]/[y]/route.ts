@@ -23,10 +23,11 @@ export async function GET(_req: NextRequest, { params }:{params:Promise<{z:strin
   }
 
   // Option 1: Redirect to R2 public URL (fastest, reduces server load)
-  if (ENABLE_R2_REDIRECT) {
+  if (ENABLE_R2_REDIRECT && contentHash) {
+    // Only redirect if we have a content hash (meaning tile exists and is ready)
     const r2Url = getTileUrl(z, x, y, contentHash);
     if (r2Url) {
-      console.log(`   Redirecting to R2: ${r2Url}${contentHash ? ` (hash: ${contentHash})` : ''}`);
+      console.log(`   Redirecting to R2: ${r2Url} (hash: ${contentHash})`);
       return NextResponse.redirect(r2Url, { status: 307 });
     }
   }
