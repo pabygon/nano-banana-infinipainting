@@ -3,8 +3,8 @@ import './globals.css'
 import { ClientProvider } from '@/components/ClientProvider'
 
 export const metadata: Metadata = {
-  title: 'Infinimap',
-  description: 'Generative, neighbor-aware slippy map',
+  title: 'Endless Cubism',
+  description: 'Generative, collaborative, infinite cubism drawing',
 }
 
 export default function RootLayout({

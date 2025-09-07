@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { validateApiKey, sanitizeApiKey, getProviderFromKey } from "@/lib/apiKeyValidation";
+import { validateApiKey, sanitizeApiKey } from "@/lib/apiKeyValidation";
 
-export type ApiProvider = "Google" | "FAL";
+export type ApiProvider = "Google";
 
 interface ApiKeyModalProps {
   isOpen: boolean;
@@ -13,7 +13,6 @@ interface ApiKeyModalProps {
 
 const ApiKeyModal = ({ isOpen, onClose, onSave }: ApiKeyModalProps) => {
   const [apiKey, setApiKey] = useState("");
-  const [selectedProvider, setSelectedProvider] = useState<ApiProvider>("Google");
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,23 +25,15 @@ const ApiKeyModal = ({ isOpen, onClose, onSave }: ApiKeyModalProps) => {
       return;
     }
 
-    // Validate the API key
-    const validation = validateApiKey(cleanKey, selectedProvider);
+    // Validate the API key for Google
+    const validation = validateApiKey(cleanKey, "Google");
     if (!validation.isValid) {
       setValidationError(validation.error!);
       return;
     }
 
-    // Auto-detect provider if it doesn't match selection
-    const detectedProvider = getProviderFromKey(cleanKey);
-    if (detectedProvider && detectedProvider !== selectedProvider) {
-      setSelectedProvider(detectedProvider);
-      setValidationError(`This appears to be a ${detectedProvider} API key. Please select the correct provider.`);
-      return;
-    }
-
     try {
-      await onSave(cleanKey, validation.provider!);
+      await onSave(cleanKey, "Google");
       setApiKey("");
       setValidationError(null);
       onClose();
@@ -52,45 +43,24 @@ const ApiKeyModal = ({ isOpen, onClose, onSave }: ApiKeyModalProps) => {
     }
   };
 
-  // Auto-detect provider when user types
   const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setApiKey(value);
     setValidationError(null);
-
-    // Auto-detect provider from key format
-    const detectedProvider = getProviderFromKey(value);
-    if (detectedProvider && detectedProvider !== selectedProvider) {
-      setSelectedProvider(detectedProvider);
-    }
   };
 
   if (!isOpen) return null;
 
   const providerInfo = {
-    Google: {
-      icon: (
-        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-      placeholder: "AIza********************************",
-      getApiUrl: "https://aistudio.google.com/app/apikey",
-      description: "Generate creative map tiles using Google's Gemini AI"
-    },
-    FAL: {
-      icon: (
-        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-        </svg>
-      ),
-      placeholder: "fal_********************************",
-      getApiUrl: "https://fal.ai/dashboard/keys",
-      description: "Fast and powerful AI image generation"
-    }
+    icon: (
+      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+    placeholder: "AIza********************************",
+    getApiUrl: "https://aistudio.google.com/app/apikey",
+    description: "Generate creative map tiles using Google's Gemini AI"
   };
-
-  const currentProvider = providerInfo[selectedProvider];
 
   if (!isOpen) {
     return null;
@@ -120,11 +90,11 @@ const ApiKeyModal = ({ isOpen, onClose, onSave }: ApiKeyModalProps) => {
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-              {currentProvider.icon}
+              {providerInfo.icon}
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">API Key Required</h2>
-              <p className="text-sm text-gray-600">Choose your AI provider and enter your API key</p>
+              <h2 className="text-xl font-bold text-gray-900">Google Gemini API Key Required</h2>
+              <p className="text-sm text-gray-600">Enter your Google Gemini API key to generate creative map tiles</p>
             </div>
           </div>
           
@@ -137,7 +107,7 @@ const ApiKeyModal = ({ isOpen, onClose, onSave }: ApiKeyModalProps) => {
               <div className="flex-1">
                 <p className="text-sm text-blue-700">
                   <strong>Privacy Note:</strong> Your API key is stored only in memory and will be cleared when you refresh the page. 
-                  You can even delete your API key from your {selectedProvider === "Google" ? "Gemini" : "FAL"} dashboard after playing around for further protection.
+                  You can even delete your API key from your Google AI Studio dashboard after playing around for further protection.
                 </p>
                 <div className="mt-2 relative group">
                   <button 
@@ -192,51 +162,18 @@ const ApiKeyModal = ({ isOpen, onClose, onSave }: ApiKeyModalProps) => {
             </div>
           </div>
         </div>
-
-        {/* Provider Selection */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-900 mb-2">
-            AI Provider
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setSelectedProvider("Google")}
-              className={`p-3 rounded-lg border-2 transition-colors text-left ${
-                selectedProvider === "Google" 
-                  ? "border-blue-600 bg-blue-50" 
-                  : "border-gray-300 hover:border-gray-400"
-              }`}
-            >
-              <div className="font-medium text-sm">Google Gemini</div>
-              <div className="text-xs text-gray-600 mt-1">{providerInfo.Google.description}</div>
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedProvider("FAL")}
-              className={`p-3 rounded-lg border-2 transition-colors text-left ${
-                selectedProvider === "FAL" 
-                  ? "border-blue-600 bg-blue-50" 
-                  : "border-gray-300 hover:border-gray-400"
-              }`}
-            >
-              <div className="font-medium text-sm">FAL AI</div>
-              <div className="text-xs text-gray-600 mt-1">{providerInfo.FAL.description}</div>
-            </button>
-          </div>
-        </div>
         
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label htmlFor="apiKey" className="block text-sm font-medium text-gray-900 mb-2">
-              {selectedProvider} API Key
+              Google Gemini API Key
             </label>
             <input
               type="password"
               id="apiKey"
               value={apiKey}
               onChange={handleApiKeyChange}
-              placeholder={currentProvider.placeholder}
+              placeholder={providerInfo.placeholder}
               className={`w-full px-4 py-2 border-2 rounded-lg bg-white text-gray-900 focus:outline-none transition-colors ${
                 validationError 
                   ? 'border-red-500 focus:border-red-600' 
@@ -255,12 +192,12 @@ const ApiKeyModal = ({ isOpen, onClose, onSave }: ApiKeyModalProps) => {
           <div className="text-sm text-gray-600 mb-6">
             <p>Don&apos;t have an API key?</p>
             <a 
-              href={currentProvider.getApiUrl}
+              href={providerInfo.getApiUrl}
               target="_blank" 
               rel="noopener noreferrer"
               className="text-blue-600 hover:underline font-medium"
             >
-              Get your {selectedProvider} API key →
+              Get your Google Gemini API key →
             </a>
           </div>
           
