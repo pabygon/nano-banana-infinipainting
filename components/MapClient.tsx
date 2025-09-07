@@ -3,6 +3,8 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useSearchParams as useSearchParamsHook } from "next/navigation";
 import dynamic from "next/dynamic";
+import { useClient } from "./ClientProvider";
+import ApiKeyModal, { type ApiProvider } from "./ApiKeyModal";
 
 const TileControls = dynamic(() => import("./TileControls"), { ssr: false });
 
@@ -20,10 +22,28 @@ export default function MapClient() {
   const router = useRouter();
   const searchParams = useSearchParamsHook();
   const updateTimeoutRef = useRef<any>(undefined);
+  
+  // API Key management
+  const { apiKeyState, setApiKey, clearApiKey } = useClient();
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [currentPrompt, setCurrentPrompt] = useState<string>("");
 
   useEffect(() => {
     selectedTileRef.current = selectedTile;
   }, [selectedTile]);
+
+  // Show API key modal on initial visit if no API key is set
+  useEffect(() => {
+    if (!apiKeyState.apiKey) {
+      setShowApiKeyModal(true);
+    }
+  }, [apiKeyState.apiKey]);
+
+  // Handle clearing API key
+  const handleClearApiKey = () => {
+    clearApiKey();
+    setShowApiKeyModal(true); // Show modal to enter new key
+  };
 
   // Close menu when clicking anywhere outside of it
   useEffect(() => {
@@ -99,10 +119,21 @@ export default function MapClient() {
 
   // Handle tile generation
   const handleGenerate = useCallback(async (x: number, y: number, prompt: string) => {
+    // Check if API key is set
+    if (!apiKeyState.apiKey) {
+      setCurrentPrompt(prompt);
+      setShowApiKeyModal(true);
+      return;
+    }
+
     try {
       const response = await fetch(`/api/claim/${MAX_Z}/${x}/${y}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-API-Key": apiKeyState.apiKey,
+          "X-API-Provider": apiKeyState.provider || "Google"
+        },
         body: JSON.stringify({ prompt })
       });
       
@@ -119,14 +150,25 @@ export default function MapClient() {
       console.error("Failed to generate tile:", error);
       throw error;
     }
-  }, [map]);
+  }, [map, apiKeyState]);
 
   // Handle tile regeneration
   const handleRegenerate = useCallback(async (x: number, y: number, prompt: string) => {
+    // Check if API key is set
+    if (!apiKeyState.apiKey) {
+      setCurrentPrompt(prompt);
+      setShowApiKeyModal(true);
+      return;
+    }
+
     try {
       const response = await fetch(`/api/invalidate/${MAX_Z}/${x}/${y}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-API-Key": apiKeyState.apiKey,
+          "X-API-Provider": apiKeyState.provider || "Google"
+        },
         body: JSON.stringify({ prompt })
       });
       
@@ -142,7 +184,7 @@ export default function MapClient() {
       console.error("Failed to regenerate tile:", error);
       throw error;
     }
-  }, [map]);
+  }, [map, apiKeyState]);
 
   // Handle tile deletion
   const handleDelete = useCallback(async (x: number, y: number) => {
@@ -423,6 +465,41 @@ export default function MapClient() {
           </div>
         )}
       </div>
+
+      {/* API Key Status & Clear Button */}
+      <div className="z-[9999] absolute top-2 right-2 bg-white/90 rounded-xl shadow-lg">
+        {apiKeyState.apiKey ? (
+          <div className="p-3 flex items-center gap-3">
+            <div className="flex flex-col">
+              <div className="text-sm font-medium text-gray-700">
+                {apiKeyState.provider} API
+              </div>
+              <div className="text-xs text-green-600 flex items-center gap-1">
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                Connected
+              </div>
+            </div>
+            <button
+              onClick={handleClearApiKey}
+              className="px-3 py-1.5 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
+              title="Clear API Key"
+            >
+              Clear
+            </button>
+          </div>
+        ) : (
+          <div className="p-3">
+            <button
+              onClick={() => setShowApiKeyModal(true)}
+              className="px-3 py-1.5 text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
+            >
+              Set API Key
+            </button>
+          </div>
+        )}
+      </div>
       
       {/* Hover highlight at max zoom (visual only, non-interactive) */}
       {hoveredTile && !selectedTile && map && map.getZoom() === MAX_Z && (
@@ -472,6 +549,21 @@ export default function MapClient() {
           </div>
         </div>
       )}
+      
+      {/* API Key Modal */}
+      <ApiKeyModal
+        isOpen={showApiKeyModal}
+        onClose={() => setShowApiKeyModal(false)}
+        onSave={(apiKey: string, provider: ApiProvider) => {
+          setApiKey(apiKey, provider);
+          setShowApiKeyModal(false);
+          // If there was a pending prompt and selected tile, execute the generation now
+          if (currentPrompt && selectedTile) {
+            handleGenerate(selectedTile.x, selectedTile.y, currentPrompt);
+            setCurrentPrompt("");
+          }
+        }}
+      />
       
       <div ref={ref} className="w-full h-full" />
     </div>

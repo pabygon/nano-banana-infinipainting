@@ -2,16 +2,30 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 
+export type ApiProvider = "Google" | "FAL";
+
+interface ApiKeyState {
+  apiKey: string | null;
+  provider: ApiProvider | null;
+}
+
 const ClientContext = createContext<{
   clientId: string;
   setClientId: (id: string) => void;
+  apiKeyState: ApiKeyState;
+  setApiKey: (apiKey: string, provider: ApiProvider) => void;
+  clearApiKey: () => void;
 }>({
   clientId: '',
-  setClientId: () => {}
+  setClientId: () => {},
+  apiKeyState: { apiKey: null, provider: null },
+  setApiKey: () => {},
+  clearApiKey: () => {}
 });
 
 export function ClientProvider({ children }: { children: React.ReactNode }) {
   const [clientId, setClientId] = useState<string>('');
+  const [apiKeyState, setApiKeyState] = useState<ApiKeyState>({ apiKey: null, provider: null });
 
   useEffect(() => {
     // Generate or retrieve client ID with better uniqueness
@@ -28,8 +42,22 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
     setClientId(id);
   }, []);
 
+  const setApiKey = (apiKey: string, provider: ApiProvider) => {
+    setApiKeyState({ apiKey, provider });
+  };
+
+  const clearApiKey = () => {
+    setApiKeyState({ apiKey: null, provider: null });
+  };
+
   return (
-    <ClientContext.Provider value={{ clientId, setClientId }}>
+    <ClientContext.Provider value={{ 
+      clientId, 
+      setClientId, 
+      apiKeyState, 
+      setApiKey, 
+      clearApiKey 
+    }}>
       {children}
     </ClientContext.Provider>
   );

@@ -21,6 +21,11 @@ const requestSchema = z.object({
   })).optional(),
 });
 
+const ApiHeaders = z.object({
+  "x-api-key": z.string().min(1, "API key is required"),
+  "x-api-provider": z.enum(["Google", "FAL"]).default("Google")
+});
+
 // Create circular gradient mask that fully contains within 3x3 grid
 async function createCircularGradientMask(size: number): Promise<Buffer> {
   const center = size / 2;
@@ -139,6 +144,18 @@ export async function POST(
   const userId = getUserId(req);
   const body = await req.json();
   const { prompt } = requestSchema.parse(body);
+
+  // Validate API headers
+  const headers = {
+    "x-api-key": req.headers.get("x-api-key") || "",
+    "x-api-provider": req.headers.get("x-api-provider") || "Google"
+  };
+  const headersParsed = ApiHeaders.safeParse(headers);
+  if (!headersParsed.success) {
+    const firstError = headersParsed.error.issues[0];
+    return NextResponse.json({ error: firstError?.message || 'API key required' }, { status: 400 });
+  }
+  const { "x-api-key": apiKey, "x-api-provider": apiProvider } = headersParsed.data;
   
   // Verify user has the generation lock for the center tile (should have been acquired when modal opened)
   const centerTile = await db.getTile(z, x, y);
@@ -152,8 +169,8 @@ export async function POST(
   try {
     console.log(`Starting generation for tile ${z}/${x}/${y} with prompt: "${prompt}"`);
     
-    // Generate the preview
-    const finalComposite = await generateGridPreview(z, x, y, prompt);
+    // Generate the preview with API key
+    const finalComposite = await generateGridPreview(z, x, y, prompt, apiKey, apiProvider);
     
     // Save preview to temporary location
     const tempDir = path.join(process.cwd(), '.temp');

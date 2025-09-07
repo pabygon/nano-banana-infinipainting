@@ -30,6 +30,8 @@ async function runModel(input: {
   styleName: string;
   neighbors: { dir: NeighborDir, buf: Buffer | null }[];
   seedHex: string;
+  apiKey?: string;
+  apiProvider?: string;
 }): Promise<Buffer> {
   console.log('🎨 Starting Gemini tile generation');
   console.log('  Prompt:', input.prompt);
@@ -152,7 +154,18 @@ User instruction: ${input.prompt || 'Include random things in the image'}`;
     console.log('  Calling Gemini API with model:', model);
     const startTime = Date.now();
 
-    const response = await ai.models.generateContentStream({
+    // Use user-provided API key if available, otherwise fallback to environment
+    let aiClient = ai;
+    if (input.apiKey && input.apiProvider === "Google") {
+      const { GoogleGenAI } = await import('@google/genai');
+      aiClient = new GoogleGenAI({ apiKey: input.apiKey });
+    } else if (input.apiKey && input.apiProvider === "FAL") {
+      // TODO: Implement FAL AI support
+      console.log('FAL AI provider selected but not yet implemented, falling back to stub generator');
+      return runModelStub(input);
+    }
+
+    const response = await aiClient.models.generateContentStream({
       model,
       config,
       contents,
@@ -256,6 +269,8 @@ async function runModelStub(input: {
   styleName: string;
   neighbors: { dir: NeighborDir, buf: Buffer | null }[];
   seedHex: string;
+  apiKey?: string;
+  apiProvider?: string;
 }): Promise<Buffer> {
   const base = sharp({
     create: {
@@ -293,7 +308,7 @@ function edgeRect(dir: NeighborDir): string {
 }
 
 /** Generate a tile preview without saving to disk */
-export async function generateTilePreview(z: number, x: number, y: number, prompt: string): Promise<Buffer> {
+export async function generateTilePreview(z: number, x: number, y: number, prompt: string, apiKey?: string, apiProvider?: string): Promise<Buffer> {
   console.log(`\n🎨 generateTilePreview called for z:${z} x:${x} y:${y}`);
   console.log(`   User prompt: "${prompt}"`);
 
@@ -303,7 +318,7 @@ export async function generateTilePreview(z: number, x: number, y: number, promp
   const seedHex = blake2sHex(Buffer.from(`${z}:${x}:${y}:${styleName}:${prompt}`)).slice(0, 8);
 
   const neighbors = await getNeighbors(z, x, y);
-  const buf = await runModel({ prompt, styleName, neighbors, seedHex });
+  const buf = await runModel({ prompt, styleName, neighbors, seedHex, apiKey, apiProvider });
 
   console.log(`   ✨ Tile preview generated for z:${z} x:${x} y:${y}\n`);
   return buf;
@@ -314,7 +329,7 @@ export async function generateTilePreview(z: number, x: number, y: number, promp
  * the model's predicted content for the neighborhood. Used by the
  * edit preview modal so empty cells can display inbound content.
  */
-export async function generateGridPreview(z: number, x: number, y: number, prompt: string): Promise<Buffer> {
+export async function generateGridPreview(z: number, x: number, y: number, prompt: string, apiKey?: string, apiProvider?: string): Promise<Buffer> {
   if (z !== ZMAX) throw new Error("Generation only at max zoom");
 
   const { name: styleName } = await loadStyleControl();
@@ -385,7 +400,18 @@ User instruction: ${prompt}`;
       ]
     }];
 
-    const response = await ai.models.generateContentStream({
+    // Use user-provided API key if available, otherwise fallback to environment
+    let aiClient = ai;
+    if (apiKey && apiProvider === "Google") {
+      const { GoogleGenAI } = await import('@google/genai');
+      aiClient = new GoogleGenAI({ apiKey });
+    } else if (apiKey && apiProvider === "FAL") {
+      // TODO: Implement FAL AI support
+      console.log('FAL AI provider selected but not yet implemented, falling back to stub generator');
+      throw new Error('FAL AI not yet implemented');
+    }
+
+    const response = await aiClient.models.generateContentStream({
       model: 'gemini-2.5-flash-image-preview',
       config: { responseModalities: ['IMAGE'] },
       contents,
@@ -416,7 +442,7 @@ User instruction: ${prompt}`;
     return await sharp(imgBuffer).webp({ quality: 90 }).toBuffer();
   } catch (err) {
     // Fallback: compose neighbors and stub-generated center into a 3×3 grid
-    const center = await runModelStub({ prompt, styleName, neighbors, seedHex });
+    const center = await runModelStub({ prompt, styleName, neighbors, seedHex, apiKey, apiProvider });
 
     const composites: sharp.OverlayOptions[] = [];
     // Place neighbors
@@ -442,7 +468,7 @@ User instruction: ${prompt}`;
   }
 }
 
-export async function generateTile(z: number, x: number, y: number, prompt: string) {
+export async function generateTile(z: number, x: number, y: number, prompt: string, apiKey?: string, apiProvider?: string) {
   console.log(`\n📍 generateTile called for z:${z} x:${x} y:${y}`);
   console.log(`   User prompt: "${prompt}"`);
 
@@ -456,7 +482,7 @@ export async function generateTile(z: number, x: number, y: number, prompt: stri
   const seedHex = blake2sHex(Buffer.from(`${z}:${x}:${y}:${styleName}:${prompt}`)).slice(0, 8);
 
   const neighbors = await getNeighbors(z, x, y);
-  const buf = await runModel({ prompt, styleName, neighbors, seedHex });
+  const buf = await runModel({ prompt, styleName, neighbors, seedHex, apiKey, apiProvider });
 
   const bytesHash = blake2sHex(buf).slice(0, 16);
   const contentVer = (rec.contentVer ?? 0) + 1;
