@@ -3,7 +3,7 @@ import { TILE, ZMAX } from "./coords";
 import { writeTileFile, readTileFile } from "./storage";
 import { db } from "./adapters/db";
 import { blake2sHex, hashTilePayload } from "./hashing";
-import { loadStyleControl } from "./style";
+// Removed style loading - using hardcoded style for simplicity
 import ai from "./gemini";
 
 type NeighborDir = "N" | "S" | "E" | "W" | "NE" | "NW" | "SE" | "SW";
@@ -114,9 +114,8 @@ async function runModel(input: {
     // Convert to base64 for Gemini
     const gridBase64 = gridImage.toString('base64');
 
-    // Build the prompt using the configurable style system
-    const { cfg } = await loadStyleControl();
-    const style = cfg.style || {
+    // Build the prompt using hardcoded style (no filesystem complexity)
+    const style = {
       artistic_movement: "Cubist-style",
       medium: "colored-pencil/ink texture", 
       palette_description: "Muted earthy palette, geometric fragments",
@@ -314,7 +313,7 @@ export async function generateTilePreview(z: number, x: number, y: number, promp
 
   if (z !== ZMAX) throw new Error("Generation only at max zoom");
 
-  const { name: styleName } = await loadStyleControl();
+  const styleName = "cubist-earthy-v1"; // Hardcoded for simplicity
   const seedHex = blake2sHex(Buffer.from(`${z}:${x}:${y}:${styleName}:${prompt}`)).slice(0, 8);
 
   const neighbors = await getNeighbors(z, x, y);
@@ -332,7 +331,7 @@ export async function generateTilePreview(z: number, x: number, y: number, promp
 export async function generateGridPreview(z: number, x: number, y: number, prompt: string, apiKey?: string, apiProvider?: string): Promise<Buffer> {
   if (z !== ZMAX) throw new Error("Generation only at max zoom");
 
-  const { name: styleName } = await loadStyleControl();
+  const styleName = "cubist-earthy-v1"; // Hardcoded for simplicity
   const seedHex = blake2sHex(Buffer.from(`${z}:${x}:${y}:${styleName}:${prompt}`)).slice(0, 8);
   const neighbors = await getNeighbors(z, x, y);
 
@@ -377,9 +376,8 @@ export async function generateGridPreview(z: number, x: number, y: number, promp
 
     const gridContext = await canvas.composite(compositeImages).png().toBuffer();
 
-    // Send the full grid to the model using the configurable style system
-    const { cfg } = await loadStyleControl();
-    const style = cfg.style || {
+    // Send the full grid to the model using hardcoded style (no filesystem complexity)
+    const style = {
       artistic_movement: "Cubist-style",
       medium: "colored-pencil/ink texture", 
       palette_description: "Muted earthy palette, geometric fragments",
@@ -478,7 +476,7 @@ export async function generateTile(z: number, x: number, y: number, prompt: stri
   const rec = await db.upsertTile({ z, x, y, status: "PENDING" });
   console.log(`   Tile marked as PENDING`);
 
-  const { name: styleName } = await loadStyleControl();
+  const styleName = "cubist-earthy-v1"; // Hardcoded for simplicity
   const seedHex = blake2sHex(Buffer.from(`${z}:${x}:${y}:${styleName}:${prompt}`)).slice(0, 8);
 
   const neighbors = await getNeighbors(z, x, y);

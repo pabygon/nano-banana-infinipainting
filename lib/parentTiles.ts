@@ -36,7 +36,47 @@ export async function generateParentTile(z: number, x: number, y: number): Promi
   }
   
   // Load default tile for missing children
-  const defaultTile = await fs.readFile(path.resolve(DEFAULT_PATH));
+  let defaultTile: Buffer;
+  try {
+    // First try to fetch from public URL (works in Vercel)
+    try {
+      const possibleUrls = [
+        process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}/default-tile.webp` : null,
+        '/default-tile.webp',
+        'http://localhost:3000/default-tile.webp'
+      ].filter((url): url is string => Boolean(url));
+      
+      let response: Response | null = null;
+      for (const url of possibleUrls) {
+        try {
+          response = await fetch(url);
+          if (response.ok) break;
+        } catch (e) {
+          continue;
+        }
+      }
+      
+      if (response && response.ok) {
+        defaultTile = Buffer.from(await response.arrayBuffer());
+        console.log(`✅ Loaded default tile from public URL for parent generation`);
+      } else {
+        throw new Error(`All default tile URLs failed`);
+      }
+    } catch (urlError) {
+      console.log(`❌ Failed to fetch default tile from public URL: ${urlError instanceof Error ? urlError.message : String(urlError)}`);
+      // Fallback: try filesystem
+      defaultTile = await fs.readFile(path.resolve(DEFAULT_PATH));
+      console.log(`✅ Loaded default tile from filesystem: ${DEFAULT_PATH}`);
+    }
+  } catch (error) {
+    console.error(`❌ Failed to load default tile for parent generation:`, error);
+    // Create a basic gray tile as last resort
+    const sharp = (await import('sharp')).default;
+    defaultTile = await sharp({
+      create: { width: 256, height: 256, channels: 3, background: { r: 128, g: 128, b: 128 } }
+    }).webp({ quality: 80 }).toBuffer();
+    console.log(`🎨 Generated fallback default tile for parent generation`);
+  }
   
   let parentTile: Buffer;
   
