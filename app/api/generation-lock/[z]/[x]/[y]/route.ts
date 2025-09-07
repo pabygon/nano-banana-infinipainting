@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { acquireGenerationLock, releaseGenerationLock, checkGenerationLock } from "@/lib/generationLock";
-import { getUserId } from "@/lib/userSession";
 
 export async function POST(
   req: NextRequest,
@@ -12,10 +11,8 @@ export async function POST(
     const centerX = parseInt(params.x, 10);
     const centerY = parseInt(params.y, 10);
     
-    const userId = getUserId(req);
-    
     // Try to acquire generation lock for 3x3 grid
-    const lockResult = await acquireGenerationLock(z, centerX, centerY, userId);
+    const lockResult = await acquireGenerationLock(z, centerX, centerY);
     if (!lockResult.success) {
       return NextResponse.json(
         { error: lockResult.error },
@@ -44,9 +41,7 @@ export async function DELETE(
     const centerX = parseInt(params.x, 10);
     const centerY = parseInt(params.y, 10);
     
-    const userId = getUserId(req);
-    
-    await releaseGenerationLock(z, centerX, centerY, userId);
+    await releaseGenerationLock(z, centerX, centerY);
     
     return NextResponse.json({ success: true });
     

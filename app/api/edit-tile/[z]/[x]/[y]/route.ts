@@ -157,9 +157,9 @@ export async function POST(
   }
   const { "x-api-key": apiKey, "x-api-provider": apiProvider } = headersParsed.data;
   
-  // Verify user has the generation lock for the center tile (should have been acquired when modal opened)
+  // Verify the center tile is locked (should have been acquired when modal opened)
   const centerTile = await db.getTile(z, x, y);
-  if (!centerTile?.locked || centerTile.locked_by !== userId) {
+  if (!centerTile?.locked) {
     return NextResponse.json(
       { error: "Generation lock required to edit tile" },
       { status: 423 }

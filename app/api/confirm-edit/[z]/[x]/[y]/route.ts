@@ -9,7 +9,6 @@ import { TILE, parentOf } from "@/lib/coords";
 import { blake2sHex } from "@/lib/hashing";
 import { generateParentTile } from "@/lib/parentTiles";
 import { acquireGenerationLock, releaseGenerationLock } from "@/lib/generationLock";
-import { getUserId } from "@/lib/userSession";
 import { withFileLock } from "@/lib/adapters/lock.file";
 
 const TILE_SIZE = TILE;
@@ -78,13 +77,12 @@ export async function POST(
   const centerX = parseInt(params.x, 10);
   const centerY = parseInt(params.y, 10);
   
-  const userId = getUserId(req);
   const body = await req.json();
   const { previewUrl, applyToAllNew, newTilePositions, selectedPositions } = requestSchema.parse(body);
   
-  // Verify user has the generation lock for the center tile (should have been acquired when modal opened)
+  // Verify the center tile is locked (should have been acquired when modal opened)
   const centerTile = await db.getTile(z, centerX, centerY);
-  if (!centerTile?.locked || centerTile.locked_by !== userId) {
+  if (!centerTile?.locked) {
     return NextResponse.json(
       { error: "Generation lock required to confirm edit" },
       { status: 423 }

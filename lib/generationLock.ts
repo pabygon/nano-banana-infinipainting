@@ -16,27 +16,25 @@ function get3x3GridTiles(centerX: number, centerY: number): Array<{x: number, y:
 export async function acquireGenerationLock(
   z: number, 
   centerX: number, 
-  centerY: number, 
-  userId: string
+  centerY: number
 ): Promise<{ success: boolean; error?: string }> {
   
   return withFileLock(`gen-lock-grid-${z}-${centerX}-${centerY}`, async () => {
     const gridTiles = get3x3GridTiles(centerX, centerY);
     const now = new Date();
     
-    // Check if ANY tile in the 3x3 grid is locked by someone else
+    // Check if ANY tile in the 3x3 grid is currently locked
     for (const tilePos of gridTiles) {
       const tile = await db.getTile(z, tilePos.x, tilePos.y);
       
-      if (tile?.locked && tile.locked_by !== userId) {
-        const lockTime = tile.locked_at ? new Date(tile.locked_at) : null;
-        const isExpired = !lockTime || (now.getTime() - lockTime.getTime()) > LOCK_DURATION;
+      if (tile?.locked && tile.locked_at) {
+        const lockTime = new Date(tile.locked_at);
+        const isExpired = (now.getTime() - lockTime.getTime()) > LOCK_DURATION;
         
         if (!isExpired) {
-          const expiresAt = lockTime ? new Date(lockTime.getTime() + LOCK_DURATION) : now;
           return { 
             success: false, 
-            error: `Cannot edit this area - tile (${tilePos.x},${tilePos.y}) is being edited by another user. Try again with another tile.` 
+            error: `Cannot edit this area - tile (${tilePos.x},${tilePos.y}) is currently being edited. Try again with another tile.` 
           };
         }
         
@@ -53,8 +51,7 @@ export async function acquireGenerationLock(
         // Update existing tile - preserve all existing data, only change lock fields
         await db.updateTile(z, tilePos.x, tilePos.y, {
           locked: true,
-          locked_at: now.toISOString(),
-          locked_by: userId
+          locked_at: now.toISOString()
         });
       } else {
         // Create new tile with EMPTY status
@@ -62,13 +59,12 @@ export async function acquireGenerationLock(
           z, x: tilePos.x, y: tilePos.y,
           status: "EMPTY",
           locked: true,
-          locked_at: now.toISOString(),
-          locked_by: userId
+          locked_at: now.toISOString()
         });
       }
     }
     
-    console.log(`Generation lock acquired for 3x3 grid centered at ${z}/${centerX}/${centerY} by ${userId}`);
+    console.log(`Generation lock acquired for 3x3 grid centered at ${z}/${centerX}/${centerY}`);
     return { success: true };
   });
 }
@@ -76,19 +72,18 @@ export async function acquireGenerationLock(
 export async function releaseGenerationLock(
   z: number, 
   centerX: number, 
-  centerY: number, 
-  userId: string
+  centerY: number
 ): Promise<void> {
   
   return withFileLock(`gen-lock-grid-${z}-${centerX}-${centerY}`, async () => {
     const gridTiles = get3x3GridTiles(centerX, centerY);
     
-    // Release locks for ALL tiles in the 3x3 grid that we own
+    // Release locks for ALL tiles in the 3x3 grid
     let releasedCount = 0;
     for (const tilePos of gridTiles) {
       const tile = await db.getTile(z, tilePos.x, tilePos.y);
       
-      if (tile?.locked_by === userId) {
+      if (tile?.locked) {
         await db.updateTile(z, tilePos.x, tilePos.y, {
           locked: false,
           locked_at: undefined,
@@ -99,9 +94,7 @@ export async function releaseGenerationLock(
     }
     
     if (releasedCount > 0) {
-      console.log(`Generation lock released for ${releasedCount} tiles in 3x3 grid centered at ${z}/${centerX}/${centerY} by ${userId}`);
-    } else {
-      console.log(`Cannot release locks for 3x3 grid centered at ${z}/${centerX}/${centerY} - not owned by ${userId}`);
+      console.log(`Generation lock released for ${releasedCount} tiles in 3x3 grid centered at ${z}/${centerX}/${centerY}`);
     }
   });
 }
@@ -110,7 +103,7 @@ export async function checkGenerationLock(
   z: number, 
   centerX: number, 
   centerY: number
-): Promise<{ locked: boolean; lockedBy?: string; expiresAt?: Date }> {
+): Promise<{ locked: boolean; expiresAt?: Date }> {
   
   const gridTiles = get3x3GridTiles(centerX, centerY);
   const now = new Date();
@@ -119,7 +112,7 @@ export async function checkGenerationLock(
   for (const tilePos of gridTiles) {
     const tile = await db.getTile(z, tilePos.x, tilePos.y);
     
-    if (tile?.locked && tile.locked_by && tile.locked_at) {
+    if (tile?.locked && tile.locked_at) {
       const lockTime = new Date(tile.locked_at);
       const expiresAt = new Date(lockTime.getTime() + LOCK_DURATION);
       const isExpired = now >= expiresAt;
@@ -138,7 +131,6 @@ export async function checkGenerationLock(
       // Found an active lock
       return {
         locked: true,
-        lockedBy: tile.locked_by,
         expiresAt
       };
     }
@@ -150,18 +142,17 @@ export async function checkGenerationLock(
 export async function canEditTile(
   z: number, 
   centerX: number, 
-  centerY: number, 
-  userId: string
+  centerY: number
 ): Promise<{ canEdit: boolean; error?: string }> {
   
   const gridTiles = get3x3GridTiles(centerX, centerY);
   const now = new Date();
   
-  // Check if ANY tile in the 3x3 grid is locked by someone else
+  // Check if ANY tile in the 3x3 grid is currently locked
   for (const tilePos of gridTiles) {
     const tile = await db.getTile(z, tilePos.x, tilePos.y);
     
-    if (tile?.locked && tile.locked_by !== userId && tile.locked_at) {
+    if (tile?.locked && tile.locked_at) {
       const lockTime = new Date(tile.locked_at);
       const isExpired = (now.getTime() - lockTime.getTime()) > LOCK_DURATION;
       
@@ -169,9 +160,17 @@ export async function canEditTile(
         const expiresAt = new Date(lockTime.getTime() + LOCK_DURATION);
         return { 
           canEdit: false, 
-          error: `Cannot edit this area - overlapping tile (${tilePos.x},${tilePos.y}) is being edited by another user. Try again with another tile.`
+          error: `Cannot edit this area - tile (${tilePos.x},${tilePos.y}) is currently being edited. Please try again in a moment.`
         };
       }
+      
+      // Lock expired, clean it up
+      console.log(`Cleaning up expired lock for tile ${z}/${tilePos.x}/${tilePos.y}`);
+      await db.updateTile(z, tilePos.x, tilePos.y, {
+        locked: false,
+        locked_at: undefined,
+        locked_by: undefined
+      });
     }
   }
   
