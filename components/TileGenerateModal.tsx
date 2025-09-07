@@ -475,7 +475,14 @@ export function TileGenerateModal({ open, onClose, x, y, z, onUpdate }: TileGene
                   )}
                 </div>
                 
-                {(error || lockError) && (
+                {loading && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-md text-blue-600 text-sm flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    Generating preview... This may take a few moments.
+                  </div>
+                )}
+                
+                {(error || lockError) && !loading && (
                   <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
                     {lockError || error}
                   </div>
