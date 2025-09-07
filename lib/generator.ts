@@ -112,11 +112,21 @@ async function runModel(input: {
     // Convert to base64 for Gemini
     const gridBase64 = gridImage.toString('base64');
 
-    // Build the prompt
-    const fullPrompt = `complete image. do not modify existing art's position or content.
-
-Style: ${input.styleName}
-Additional context: ${input.prompt || 'tropical islands with beaches and ocean'}`;
+    // Build the prompt using the configurable style system
+    const { cfg } = await loadStyleControl();
+    const style = cfg.style || {
+      artistic_movement: "Cubist-style",
+      medium: "colored-pencil/ink texture", 
+      palette_description: "Muted earthy palette, geometric fragments",
+      composition: "Full-bleed, edge-to-edge composition that reaches all four sides; seamless continuation to neighboring tiles",
+      constraints: "Do not add frames, borders, margins, text, drop shadows, or vignettes"
+    };
+    
+    const fullPrompt = `${style.artistic_movement} illustration with ${style.medium}. 
+${style.palette_description}. 
+${style.composition}. 
+${style.constraints}. 
+User instruction: ${input.prompt || 'Include random things in the image'}`;
 
     const userParts: any[] = [
       { text: fullPrompt },
@@ -352,8 +362,21 @@ export async function generateGridPreview(z: number, x: number, y: number, promp
 
     const gridContext = await canvas.composite(compositeImages).png().toBuffer();
 
-    // Send the full grid to the model
-    const fullPrompt = `complete image. do not modify existing art's position or content.\n\nStyle: ${styleName}\nAdditional context: ${prompt}`;
+    // Send the full grid to the model using the configurable style system
+    const { cfg } = await loadStyleControl();
+    const style = cfg.style || {
+      artistic_movement: "Cubist-style",
+      medium: "colored-pencil/ink texture", 
+      palette_description: "Muted earthy palette, geometric fragments",
+      composition: "Full-bleed, edge-to-edge composition that reaches all four sides; seamless continuation to neighboring tiles",
+      constraints: "Do not add frames, borders, margins, text, drop shadows, or vignettes"
+    };
+    
+    const fullPrompt = `${style.artistic_movement} illustration with ${style.medium}. 
+${style.palette_description}. 
+${style.composition}. 
+${style.constraints}. 
+User instruction: ${prompt}`;
     const contents = [{
       role: 'user',
       parts: [

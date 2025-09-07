@@ -1,5 +1,12 @@
 {
-  "name": "islands-v1",
+  "name": "cubist-earthy-v1",
+  "style": {
+    "artistic_movement": "Cubist-style",
+    "medium": "colored-pencil/ink texture",
+    "palette_description": "Muted earthy palette, geometric fragments",
+    "composition": "Full-bleed, edge-to-edge composition that reaches all four sides; seamless continuation to neighboring tiles",
+    "constraints": "Do not add frames, borders, margins, text, drop shadows, or vignettes"
+  },
   "palette": {
     "deep": "#143C82",
     "shallow": "#1E5AA0",

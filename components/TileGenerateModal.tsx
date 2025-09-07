@@ -392,6 +392,31 @@ export function TileGenerateModal({ open, onClose, x, y, z, onUpdate }: TileGene
                     </button>
                   </div>
                 </div>
+                
+                {/* User prompting tips */}
+                <div className="text-xs text-gray-600 bg-gray-50 rounded-lg p-3 space-y-1">
+                  <div className="font-medium text-gray-700">💡 Prompting Tips:</div>
+                  {newTilePositions.size === 9 ? (
+                    // All tiles are new - creation mode
+                    <div>
+                      <div className="font-medium">Creating new artwork:</div>
+                      <div>Example: "Create a beach with bananas dancing"</div>
+                    </div>
+                  ) : newTilePositions.size > 0 ? (
+                    // Some tiles exist - extension mode  
+                    <div>
+                      <div className="font-medium">Extending existing artwork:</div>
+                      <div>Example: "Extend the scene, adding abstract palm trees"</div>
+                    </div>
+                  ) : (
+                    // All tiles exist - editing mode
+                    <div>
+                      <div className="font-medium">Editing existing artwork:</div>
+                      <div>Example: "Remove the boats in the background and replace them with mountains"</div>
+                    </div>
+                  )}
+                </div>
+                
                 {(error || lockError) && (
                   <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
                     {lockError || error}
