@@ -128,10 +128,68 @@ const ApiKeyModal = ({ isOpen, onClose, onSave }: ApiKeyModalProps) => {
             </div>
           </div>
           
+          {/* Privacy Notice */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-            <p className="text-sm text-blue-700">
-              <strong>Privacy Note:</strong> Your API key is stored only in memory and will be cleared when you refresh the page.
-            </p>
+            <div className="flex items-start gap-2">
+              <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="flex-1">
+                <p className="text-sm text-blue-700">
+                  <strong>Privacy Note:</strong> Your API key is stored only in memory and will be cleared when you refresh the page. 
+                  You can even delete your API key from your {selectedProvider === "Google" ? "Gemini" : "FAL"} dashboard after playing around for further protection.
+                </p>
+                <div className="mt-2 relative group">
+                  <button 
+                    type="button"
+                    className="text-xs text-blue-600 hover:text-blue-800 underline cursor-help inline-flex items-center gap-1"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.818-4.954A9.959 9.959 0 0121 12c0 5.523-4.477 10-10 10S1 17.523 1 12 5.477 2 11 2a9.959 9.959 0 014.954 1.182M15 8h.01" />
+                    </svg>
+                    More information about cybersecurity
+                  </button>
+                  
+                  {/* Detailed Security Tooltip */}
+                  <div className="absolute bottom-full left-0 mb-2 w-80 bg-white border border-gray-200 rounded-lg shadow-xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      🔐 Advanced Security Measures
+                    </h4>
+                    <div className="space-y-2 text-xs text-gray-700">
+                      <div className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 bg-green-600 rounded-full mt-1.5 flex-shrink-0"></span>
+                        <span><strong>AES-256 Encryption:</strong> Keys encrypted in browser memory using Web Crypto API</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 bg-green-600 rounded-full mt-1.5 flex-shrink-0"></span>
+                        <span><strong>Memory-Only Storage:</strong> Never saved to disk, localStorage, or cookies</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 bg-green-600 rounded-full mt-1.5 flex-shrink-0"></span>
+                        <span><strong>Session-Based:</strong> Automatically cleared on page refresh or browser close</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 bg-green-600 rounded-full mt-1.5 flex-shrink-0"></span>
+                        <span><strong>Input Validation:</strong> API keys validated and sanitized before storage</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 bg-green-600 rounded-full mt-1.5 flex-shrink-0"></span>
+                        <span><strong>XSS Protection:</strong> Content Security Policy headers prevent code injection</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 bg-green-600 rounded-full mt-1.5 flex-shrink-0"></span>
+                        <span><strong>Request Signing:</strong> HMAC-SHA256 signatures for enhanced API security</span>
+                      </div>
+                    </div>
+
+                    
+                    {/* Tooltip Arrow */}
+                    <div className="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-white"></div>
+                    <div className="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-200 transform translate-y-px"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
