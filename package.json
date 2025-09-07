@@ -17,6 +17,7 @@
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@radix-ui/themes": "^3.2.1",
+    "@supabase/supabase-js": "^2.57.2",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.542.0",
     "next": "^15.5.2",

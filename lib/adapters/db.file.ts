@@ -72,4 +72,5 @@ export class FileDB implements DB {
   }
 }
 
-export const db = new FileDB();
+// Remove the export here since we're now using db.ts as the main entry point
+// export const db = new FileDB();

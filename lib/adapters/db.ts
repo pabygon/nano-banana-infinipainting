@@ -23,3 +23,29 @@ export interface DB {
 }
 
 export function key(z:number,x:number,y:number) { return `${z}_${x}_${y}`; }
+
+// Import both implementations
+import { FileDB } from './db.file';
+
+// Database instance - conditionally choose implementation
+const USE_SUPABASE_DB = process.env.USE_SUPABASE_DB === 'true';
+
+// Create database instance based on environment
+function createDB(): DB {
+  if (USE_SUPABASE_DB) {
+    console.log('📊 Using Supabase database');
+    // Lazy import Supabase to avoid loading it when not needed
+    try {
+      const { supabaseDB } = require('./db.supabase');
+      return supabaseDB;
+    } catch (error) {
+      console.error('Failed to load Supabase DB, falling back to FileDB:', error);
+      return new FileDB();
+    }
+  } else {
+    console.log('📁 Using file-based database');
+    return new FileDB();
+  }
+}
+
+export const db = createDB();

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ZMAX, parentOf, childrenOf } from "@/lib/coords";
-import { db } from "@/lib/adapters/db.file";
+import { db } from "@/lib/adapters/db";
 import fs from "node:fs/promises";
 import { tilePath } from "@/lib/storage";
 import { generateParentTile } from "@/lib/parentTiles";

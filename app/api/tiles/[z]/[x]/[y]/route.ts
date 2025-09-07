@@ -3,7 +3,7 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { readTileFile, tilePath, getTileUrl } from "@/lib/storage";
 import { blake2sHex } from "@/lib/hashing";
-import { db } from "@/lib/adapters/db.file";
+import { db } from "@/lib/adapters/db";
 
 const DEFAULT_PATH = process.env.DEFAULT_TILE_PATH ?? "./public/default-tile.webp";
 const USE_R2 = process.env.USE_R2_STORAGE === "true";

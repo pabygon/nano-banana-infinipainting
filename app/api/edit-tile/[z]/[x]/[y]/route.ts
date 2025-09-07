@@ -5,7 +5,7 @@ import fs from "fs/promises";
 import path from "path";
 import { generateGridPreview } from "@/lib/generator";
 import { readTileFile } from "@/lib/storage";
-import { db } from "@/lib/adapters/db.file";
+import { db } from "@/lib/adapters/db";
 import { TILE } from "@/lib/coords";
 import { acquireGenerationLock, releaseGenerationLock } from "@/lib/generationLock";
 import { getUserId } from "@/lib/userSession";

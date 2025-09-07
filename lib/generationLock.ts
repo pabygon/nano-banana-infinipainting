@@ -1,4 +1,4 @@
-import { db } from './adapters/db.file';
+import { db } from './adapters/db';
 import { withFileLock } from './adapters/lock.file';
 
 const LOCK_DURATION = 2 * 60 * 1000; // 2 minutes in milliseconds
@@ -47,12 +47,25 @@ export async function acquireGenerationLock(
     
     // Acquire locks for ALL tiles in the 3x3 grid
     for (const tilePos of gridTiles) {
-      await db.upsertTile({
-        z, x: tilePos.x, y: tilePos.y,
-        locked: true,
-        locked_at: now.toISOString(),
-        locked_by: userId
-      });
+      const existingTile = await db.getTile(z, tilePos.x, tilePos.y);
+      
+      if (existingTile) {
+        // Update existing tile - preserve all existing data, only change lock fields
+        await db.updateTile(z, tilePos.x, tilePos.y, {
+          locked: true,
+          locked_at: now.toISOString(),
+          locked_by: userId
+        });
+      } else {
+        // Create new tile with EMPTY status
+        await db.upsertTile({
+          z, x: tilePos.x, y: tilePos.y,
+          status: "EMPTY",
+          locked: true,
+          locked_at: now.toISOString(),
+          locked_by: userId
+        });
+      }
     }
     
     console.log(`Generation lock acquired for 3x3 grid centered at ${z}/${centerX}/${centerY} by ${userId}`);

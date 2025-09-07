@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/adapters/db.file";
+import { db } from "@/lib/adapters/db";
 import { fileQueue } from "@/lib/adapters/queue.file";
 import { z as zod } from "zod";
 

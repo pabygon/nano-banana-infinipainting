@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ZMAX } from "@/lib/coords";
 import { z as zod } from "zod";
-import { db } from "@/lib/adapters/db.file";
+import { db } from "@/lib/adapters/db";
 import { fileQueue } from "@/lib/adapters/queue.file";
 import { SignatureVerifier } from "@/lib/signatureVerification";
 

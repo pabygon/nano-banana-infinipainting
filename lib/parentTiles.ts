@@ -2,7 +2,7 @@ import sharp from "sharp";
 import { TILE, ZMAX } from "./coords";
 import { readTileFile, writeTileFile } from "./storage";
 import { childrenOf } from "./coords";
-import { db } from "./adapters/db.file";
+import { db } from "./adapters/db";
 import { blake2sHex, hashTilePayload } from "./hashing";
 import path from "node:path";
 import fs from "node:fs/promises";

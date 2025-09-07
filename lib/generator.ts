@@ -1,7 +1,7 @@
 import sharp from "sharp";
 import { TILE, ZMAX } from "./coords";
 import { writeTileFile, readTileFile } from "./storage";
-import { db } from "./adapters/db.file";
+import { db } from "./adapters/db";
 import { blake2sHex, hashTilePayload } from "./hashing";
 import { loadStyleControl } from "./style";
 import ai from "./gemini";

@@ -3,7 +3,7 @@ import fs from "fs/promises";
 import path from "path";
 import sharp from "sharp";
 import { readTileFile } from "@/lib/storage";
-import { db } from "@/lib/adapters/db.file";
+import { db } from "@/lib/adapters/db";
 import { TILE } from "@/lib/coords";
 
 const TILE_SIZE = TILE;

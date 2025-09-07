@@ -4,7 +4,7 @@ import sharp from "sharp";
 import fs from "fs/promises";
 import path from "path";
 import { writeTileFile, readTileFile } from "@/lib/storage";
-import { db } from "@/lib/adapters/db.file";
+import { db } from "@/lib/adapters/db";
 import { TILE, parentOf } from "@/lib/coords";
 import { blake2sHex } from "@/lib/hashing";
 import { generateParentTile } from "@/lib/parentTiles";

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/adapters/db.file";
+import { db } from "@/lib/adapters/db";
 
 export async function GET(_req: Request, { params }:{params:Promise<{z:string,x:string,y:string}>}) {
   const { z: zStr, x: xStr, y: yStr } = await params;

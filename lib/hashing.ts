@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { db } from "./adapters/db.file";
+import { db } from "./adapters/db";
 import { parentOf } from "./coords";
 
 export function blake2sHex(buf: Buffer | string) {
