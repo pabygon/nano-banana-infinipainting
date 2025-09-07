@@ -3,6 +3,7 @@ import fs from "fs/promises";
 import path from "path";
 import sharp from "sharp";
 import { readTileFile } from "@/lib/storage";
+import { db } from "@/lib/adapters/db.file";
 import { TILE } from "@/lib/coords";
 
 const TILE_SIZE = TILE;
@@ -84,7 +85,9 @@ export async function GET(
       for (let dx = 0; dx < 3; dx++) {
         const tileX = cx + dx - 1;
         const tileY = cy + dy - 1;
-        const existing = await readTileFile(z, tileX, tileY);
+        const existingRecord = await db.getTile(z, tileX, tileY);
+        const existingContentHash = existingRecord?.status === "READY" ? existingRecord.contentHash : undefined;
+        const existing = await readTileFile(z, tileX, tileY, existingContentHash);
 
         const rawTile = await sharp(raw).extract({ left: dx*TILE_SIZE, top: dy*TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE }).webp().toBuffer();
 

@@ -4,7 +4,8 @@ export interface TileRecord {
   z: number; x: number; y: number;
   status: TileStatus;
   seed?: string;          // hex or decimal string
-  hash?: string;          // short content hash
+  hash?: string;          // tile payload hash (algorithm + content + seed)
+  contentHash?: string;   // image content hash (used for R2 filename)
   contentVer?: number;    // increments on change
   updatedAt?: string;     // ISO date
   createdAt?: string;     // ISO date

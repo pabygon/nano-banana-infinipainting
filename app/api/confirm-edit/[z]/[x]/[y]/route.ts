@@ -114,7 +114,9 @@ export async function POST(
         const genTile = genTiles[dy + 1][dx + 1];
 
         // Determine if updating this position
-        const existsBuf = await readTileFile(z, tileX, tileY);
+        const existingRecord = await db.getTile(z, tileX, tileY);
+        const existingContentHash = existingRecord?.status === "READY" ? existingRecord.contentHash : undefined;
+        const existsBuf = await readTileFile(z, tileX, tileY, existingContentHash);
         const exists = !!existsBuf;
 
         // Respect explicit selection when provided
@@ -142,10 +144,11 @@ export async function POST(
             .toBuffer();
         }
 
-        // Save tile
-        await writeTileFile(z, tileX, tileY, finalTile);
+        // Calculate hash and save tile
+        const contentHash = blake2sHex(finalTile).slice(0, 16);
         const hash = blake2sHex(finalTile);
-        await db.upsertTile({ z, x: tileX, y: tileY, status: "READY", hash });
+        await writeTileFile(z, tileX, tileY, finalTile, contentHash);
+        await db.upsertTile({ z, x: tileX, y: tileY, status: "READY", hash, contentHash });
         updatedPositions.push({ x: tileX, y: tileY });
       }
     }

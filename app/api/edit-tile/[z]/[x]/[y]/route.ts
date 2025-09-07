@@ -5,6 +5,7 @@ import fs from "fs/promises";
 import path from "path";
 import { generateGridPreview } from "@/lib/generator";
 import { readTileFile } from "@/lib/storage";
+import { db } from "@/lib/adapters/db.file";
 import { TILE } from "@/lib/coords";
 
 const TILE_SIZE = TILE;
@@ -82,7 +83,12 @@ async function fetchTileGrid(z: number, centerX: number, centerY: number): Promi
     for (let dx = -1; dx <= 1; dx++) {
       const x = centerX + dx;
       const y = centerY + dy;
-      const tileBuffer = await readTileFile(z, x, y) || defaultTile;
+      
+      // Get tile metadata to extract content hash
+      const tileRecord = await db.getTile(z, x, y);
+      const tileContentHash = tileRecord?.status === "READY" ? tileRecord.contentHash : undefined;
+      
+      const tileBuffer = await readTileFile(z, x, y, tileContentHash) || defaultTile;
       row.push(tileBuffer);
     }
     grid.push(row);

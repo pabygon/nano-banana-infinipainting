@@ -19,9 +19,13 @@ export async function generateParentTile(z: number, x: number, y: number): Promi
   const childBuffers: (Buffer | null)[] = [];
   
   for (const child of children) {
-    const buf = await readTileFile(child.z, child.x, child.y);
+    // Get child tile metadata to extract content hash
+    const childRecord = await db.getTile(child.z, child.x, child.y);
+    const childContentHash = childRecord?.status === "READY" ? childRecord.contentHash : undefined;
+    
+    const buf = await readTileFile(child.z, child.x, child.y, childContentHash);
     childBuffers.push(buf);
-    console.log(`   Child ${child.z}_${child.x}_${child.y}: ${buf ? buf.length + ' bytes' : 'null'}`);
+    console.log(`   Child ${child.z}_${child.x}_${child.y}: ${buf ? buf.length + ' bytes' : 'null'}${childContentHash ? ` (hash: ${childContentHash})` : ''}`);
   }
   
   // Check if we have any child tiles
@@ -97,11 +101,13 @@ export async function generateParentTile(z: number, x: number, y: number): Promi
       .toBuffer();
   }
   
+  // Calculate hash before saving
+  const bytesHash = blake2sHex(parentTile).slice(0, 16);
+  
   // Save the parent tile
-  await writeTileFile(z, x, y, parentTile);
+  await writeTileFile(z, x, y, parentTile, bytesHash);
   
   // Update metadata
-  const bytesHash = blake2sHex(parentTile).slice(0, 16);
   const existing = await db.getTile(z, x, y);
   const contentVer = (existing?.contentVer ?? 0) + 1;
   const hash = hashTilePayload({
@@ -115,6 +121,7 @@ export async function generateParentTile(z: number, x: number, y: number): Promi
     z, x, y,
     status: "READY",
     hash,
+    contentHash: bytesHash,
     contentVer,
     seed: "parent"
   });
@@ -137,7 +144,11 @@ export async function generateAllParentTiles() {
         // Only regenerate if at least one child exists at z+1
         const children = childrenOf(z, x, y);
         const hasChildren = await Promise.all(
-          children.map(c => readTileFile(c.z, c.x, c.y))
+          children.map(async c => {
+            const childRecord = await db.getTile(c.z, c.x, c.y);
+            const childContentHash = childRecord?.status === "READY" ? childRecord.contentHash : undefined;
+            return await readTileFile(c.z, c.x, c.y, childContentHash);
+          })
         ).then(buffers => buffers.some(b => b !== null));
 
         if (hasChildren) {

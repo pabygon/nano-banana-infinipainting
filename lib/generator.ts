@@ -15,7 +15,11 @@ const dirs: [NeighborDir, number, number][] = [
 async function getNeighbors(z: number, x: number, y: number) {
   const out: { dir: NeighborDir, buf: Buffer | null }[] = [];
   for (const [dir, dx, dy] of dirs) {
-    out.push({ dir, buf: await readTileFile(z, x + dx, y + dy) });
+    // Get neighbor tile metadata to extract content hash
+    const neighborRecord = await db.getTile(z, x + dx, y + dy);
+    const neighborContentHash = neighborRecord?.status === "READY" ? neighborRecord.contentHash : undefined;
+    
+    out.push({ dir, buf: await readTileFile(z, x + dx, y + dy, neighborContentHash) });
   }
   return out;
 }
@@ -437,10 +441,16 @@ export async function generateTile(z: number, x: number, y: number, prompt: stri
     algorithmVersion: 1, contentVer, bytesHash, seed: seedHex
   });
 
-  await writeTileFile(z, x, y, buf);
-  console.log(`   Tile file written to disk`);
+  await writeTileFile(z, x, y, buf, bytesHash);
+  console.log(`   Tile file written to disk with hash: ${bytesHash}`);
 
-  const updated = await db.updateTile(z, x, y, { status: "READY", hash, contentVer, seed: seedHex });
+  const updated = await db.updateTile(z, x, y, { 
+    status: "READY", 
+    hash, 
+    contentHash: bytesHash, 
+    contentVer, 
+    seed: seedHex 
+  });
   console.log(`   Tile marked as READY with hash: ${updated.hash}`);
   console.log(`   ✨ Tile generation complete for z:${z} x:${x} y:${y}\n`);
 
