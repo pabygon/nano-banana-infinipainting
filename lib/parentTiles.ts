@@ -37,45 +37,41 @@ export async function generateParentTile(z: number, x: number, y: number): Promi
   
   // Load default tile for missing children
   let defaultTile: Buffer;
+  
+  // In serverless environments, we can't rely on filesystem or external URLs
+  // So we'll always generate a default tile on demand
   try {
-    // First try to fetch from public URL (works in Vercel)
-    try {
-      const possibleUrls = [
-        process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}/default-tile.webp` : null,
-        '/default-tile.webp',
-        'http://localhost:3000/default-tile.webp'
-      ].filter((url): url is string => Boolean(url));
-      
-      let response: Response | null = null;
-      for (const url of possibleUrls) {
-        try {
-          response = await fetch(url);
-          if (response.ok) break;
-        } catch (e) {
-          continue;
-        }
-      }
-      
-      if (response && response.ok) {
-        defaultTile = Buffer.from(await response.arrayBuffer());
-        console.log(`✅ Loaded default tile from public URL for parent generation`);
-      } else {
-        throw new Error(`All default tile URLs failed`);
-      }
-    } catch (urlError) {
-      console.log(`❌ Failed to fetch default tile from public URL: ${urlError instanceof Error ? urlError.message : String(urlError)}`);
-      // Fallback: try filesystem
-      defaultTile = await fs.readFile(path.resolve(DEFAULT_PATH));
-      console.log(`✅ Loaded default tile from filesystem: ${DEFAULT_PATH}`);
-    }
+    // For Vercel deployment, always generate the default tile
+    // This ensures consistency and avoids filesystem/URL issues
+    const sharp = (await import('sharp')).default;
+    
+    // Create a subtle grid pattern for the default tile
+    const svg = `
+      <svg width="256" height="256" xmlns="http://www.w3.org/2000/svg">
+        <rect width="256" height="256" fill="#808080"/>
+        <g stroke="#707070" stroke-width="1" fill="none">
+          <line x1="0" y1="0" x2="256" y2="0"/>
+          <line x1="0" y1="256" x2="256" y2="256"/>
+          <line x1="0" y1="0" x2="0" y2="256"/>
+          <line x1="256" y1="0" x2="256" y2="256"/>
+          <line x1="128" y1="0" x2="128" y2="256" stroke-dasharray="4,4"/>
+          <line x1="0" y1="128" x2="256" y2="128" stroke-dasharray="4,4"/>
+        </g>
+      </svg>
+    `;
+    
+    defaultTile = await sharp(Buffer.from(svg))
+      .webp({ quality: 80 })
+      .toBuffer();
+    
+    console.log(`🎨 Generated default tile for parent generation`);
   } catch (error) {
-    console.error(`❌ Failed to load default tile for parent generation:`, error);
-    // Create a basic gray tile as last resort
+    console.error(`❌ Failed to generate default tile:`, error);
+    // Ultimate fallback: simple gray tile
     const sharp = (await import('sharp')).default;
     defaultTile = await sharp({
       create: { width: 256, height: 256, channels: 3, background: { r: 128, g: 128, b: 128 } }
     }).webp({ quality: 80 }).toBuffer();
-    console.log(`🎨 Generated fallback default tile for parent generation`);
   }
   
   let parentTile: Buffer;
