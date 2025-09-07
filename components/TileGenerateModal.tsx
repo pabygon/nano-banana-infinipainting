@@ -115,11 +115,18 @@ export function TileGenerateModal({ open, onClose, x, y, z, onUpdate }: TileGene
             newPositions.add(`${tileX},${tileY}`);
           }
           
-          // Add cache buster based on updatedAt or current time for fresh load
-          const cacheBuster = tileMeta?.updatedAt 
-            ? new Date(tileMeta.updatedAt).getTime() 
-            : Date.now();
-          const url = `/api/tiles/${z}/${tileX}/${tileY}?v=${cacheBuster}`;
+          // Use default tile for empty tiles, API tile for existing ones
+          let url: string;
+          if (tileMeta?.status === 'READY') {
+            // Tile exists - use API URL with cache buster
+            const cacheBuster = tileMeta.updatedAt 
+              ? new Date(tileMeta.updatedAt).getTime() 
+              : Date.now();
+            url = `/api/tiles/${z}/${tileX}/${tileY}?v=${cacheBuster}`;
+          } else {
+            // Tile doesn't exist - use default tile
+            url = '/default-tile.webp';
+          }
           row.push(url);
         }
         newTiles.push(row);
@@ -547,7 +554,17 @@ export function TileGenerateModal({ open, onClose, x, y, z, onUpdate }: TileGene
                             {tiles.map((row, dy) =>
                               row.map((tile, dx) => (
                                 <div key={`${dx}-${dy}`} className="relative w-full h-full">
-                                  <img src={tile} alt={`Tile ${x + dx - 1},${y + dy - 1}`} className="block w-full h-full object-cover" />
+                                  <img 
+                                    src={tile} 
+                                    alt={`Tile ${x + dx - 1},${y + dy - 1}`} 
+                                    className="block w-full h-full object-cover"
+                                    onError={(e) => {
+                                      // Fallback to default tile if image fails to load
+                                      if (e.currentTarget.src !== '/default-tile.webp') {
+                                        e.currentTarget.src = '/default-tile.webp';
+                                      }
+                                    }}
+                                  />
                                 </div>
                               ))
                             )}
@@ -574,7 +591,17 @@ export function TileGenerateModal({ open, onClose, x, y, z, onUpdate }: TileGene
 
                               return (
                                 <div key={`${dx}-${dy}`} className="relative w-full h-full">
-                                  <img src={imgSrc} alt={`Tile ${tileX},${tileY}`} className="block w-full h-full object-cover" />
+                                  <img 
+                                    src={imgSrc} 
+                                    alt={`Tile ${tileX},${tileY}`} 
+                                    className="block w-full h-full object-cover"
+                                    onError={(e) => {
+                                      // Fallback to default tile if image fails to load
+                                      if (e.currentTarget.src !== '/default-tile.webp') {
+                                        e.currentTarget.src = '/default-tile.webp';
+                                      }
+                                    }}
+                                  />
                                   {/* Hover overlay controls for selection + tags (hover-only) */}
                                   {previewTiles && (
                                     <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-150">
