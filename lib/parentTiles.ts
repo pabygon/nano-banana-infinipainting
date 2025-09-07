@@ -48,7 +48,7 @@ export async function generateParentTile(z: number, x: number, y: number): Promi
     // Create a subtle grid pattern for the default tile
     const svg = `
       <svg width="256" height="256" xmlns="http://www.w3.org/2000/svg">
-        <rect width="256" height="256" fill="#808080"/>
+        <rect width="256" height="256" fill="#ffffff"/>
         <g stroke="#707070" stroke-width="1" fill="none">
           <line x1="0" y1="0" x2="256" y2="0"/>
           <line x1="0" y1="256" x2="256" y2="256"/>
