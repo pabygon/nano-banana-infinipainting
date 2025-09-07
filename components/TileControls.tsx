@@ -135,8 +135,15 @@ export default function TileControls({ x, y, z, exists, onGenerate, onRegenerate
         y={y}
         z={z}
         onUpdate={() => {
-          console.log('Generation successful, reloading...');
-          window.location.reload();
+          console.log('Generation successful, updating tiles...');
+          // Force tile refresh by adding timestamp to bust cache
+          const tiles = document.querySelectorAll('img[src*="/api/tiles/"]');
+          tiles.forEach((img: Element) => {
+            const htmlImg = img as HTMLImageElement;
+            const url = new URL(htmlImg.src);
+            url.searchParams.set('v', Date.now().toString());
+            htmlImg.src = url.toString();
+          });
         }}
       />
     </div>

@@ -21,7 +21,7 @@ const TILE_SIZE = 256;
 const GRID_SIZE = 3;
 
 export function TileGenerateModal({ open, onClose, x, y, z, onUpdate }: TileGenerateModalProps) {
-  const { clientId, apiKeyState } = useClient();
+  const { clientId, apiKeyState, getDecryptedApiKey } = useClient();
   const [tiles, setTiles] = useState<string[][]>([]);
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
@@ -220,12 +220,20 @@ export function TileGenerateModal({ open, onClose, x, y, z, onUpdate }: TileGene
         return;
       }
 
+      // Get decrypted API key
+      const decryptedApiKey = await getDecryptedApiKey();
+      if (!decryptedApiKey) {
+        setError("Failed to access API key. Please try again.");
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch(`/api/edit-tile/${z}/${x}/${y}`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
           "X-Client-Id": clientId,
-          "X-API-Key": apiKeyState.apiKey,
+          "X-API-Key": decryptedApiKey,
           "X-API-Provider": apiKeyState.provider || "Google"
         },
         body: JSON.stringify({ prompt }),
@@ -258,11 +266,28 @@ export function TileGenerateModal({ open, onClose, x, y, z, onUpdate }: TileGene
     setLoading(true);
     
     try {
+      // Check if API key is available
+      if (!apiKeyState.apiKey) {
+        setError("API key is required. Please set your API key first.");
+        setLoading(false);
+        return;
+      }
+
+      // Get decrypted API key
+      const decryptedApiKey = await getDecryptedApiKey();
+      if (!decryptedApiKey) {
+        setError("Failed to access API key. Please try again.");
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch(`/api/confirm-edit/${z}/${x}/${y}`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "X-Client-Id": clientId
+          "X-Client-Id": clientId,
+          "X-API-Key": decryptedApiKey,
+          "X-API-Provider": apiKeyState.provider || "Google"
         },
         body: JSON.stringify({ 
           previewUrl: `/api/preview/${previewId}`,
@@ -300,12 +325,20 @@ export function TileGenerateModal({ open, onClose, x, y, z, onUpdate }: TileGene
     setLoading(true);
     setError(null);
     try {
+      // Get decrypted API key
+      const decryptedApiKey = await getDecryptedApiKey();
+      if (!decryptedApiKey) {
+        setError("Failed to access API key. Please try again.");
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch(`/api/edit-tile/${z}/${x}/${y}`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
           "X-Client-Id": clientId,
-          "X-API-Key": apiKeyState.apiKey,
+          "X-API-Key": decryptedApiKey,
           "X-API-Provider": apiKeyState.provider || "Google"
         },
         body: JSON.stringify({ prompt }),

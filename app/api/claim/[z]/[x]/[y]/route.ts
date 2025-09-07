@@ -3,6 +3,7 @@ import { ZMAX } from "@/lib/coords";
 import { z as zod } from "zod";
 import { db } from "@/lib/adapters/db.file";
 import { fileQueue } from "@/lib/adapters/queue.file";
+import { SignatureVerifier } from "@/lib/signatureVerification";
 
 const Body = zod.object({ prompt: zod.string().min(1, "Prompt is required").max(500) });
 
@@ -29,18 +30,59 @@ export async function POST(req: NextRequest, { params }:{params:Promise<{z:strin
   const { prompt } = parsed.data;
   console.log(`   Prompt: "${prompt}"`);
 
-  // Validate API headers
-  const headers = {
-    "x-api-key": req.headers.get("x-api-key") || "",
-    "x-api-provider": req.headers.get("x-api-provider") || "Google"
-  };
-  const headersParsed = ApiHeaders.safeParse(headers);
-  if (!headersParsed.success) {
-    const firstError = headersParsed.error.issues[0];
-    console.log(`   ❌ API headers validation error: ${firstError?.message || 'Invalid headers'}`);
-    return NextResponse.json({ error: firstError?.message || 'API key required' }, { status: 400 });
+  // Check for signed request first
+  const authHeader = req.headers.get("authorization");
+  const USE_SIGNATURE_VERIFICATION = false; // Set to true to enable signature verification
+  
+  let apiKey: string;
+  let apiProvider: string;
+  
+  if (USE_SIGNATURE_VERIFICATION && authHeader) {
+    console.log(`   🔐 Verifying signed request`);
+    
+    // For signed requests, we still need the API key to verify the signature
+    // In production, you might look up the key from a database using a key ID
+    const providedApiKey = req.headers.get("x-api-key");
+    if (!providedApiKey) {
+      return NextResponse.json({ error: 'API key required for signature verification' }, { status: 401 });
+    }
+    
+    const method = "POST";
+    const url = `/api/claim/${z}/${x}/${y}`;
+    const bodyStr = JSON.stringify({ prompt });
+    
+    const verification = await SignatureVerifier.verifyRequest(
+      authHeader,
+      method,
+      url,
+      bodyStr,
+      providedApiKey
+    );
+    
+    if (!verification.isValid) {
+      console.log(`   ❌ Signature verification failed: ${verification.error}`);
+      return NextResponse.json({ error: verification.error }, { status: 401 });
+    }
+    
+    apiKey = verification.apiKey!;
+    apiProvider = req.headers.get("x-api-provider") || "Google";
+    console.log(`   ✅ Signature verified successfully`);
+  } else {
+    // Traditional API key validation
+    const headers = {
+      "x-api-key": req.headers.get("x-api-key") || "",
+      "x-api-provider": req.headers.get("x-api-provider") || "Google"
+    };
+    const headersParsed = ApiHeaders.safeParse(headers);
+    if (!headersParsed.success) {
+      const firstError = headersParsed.error.issues[0];
+      console.log(`   ❌ API headers validation error: ${firstError?.message || 'Invalid headers'}`);
+      return NextResponse.json({ error: firstError?.message || 'API key required' }, { status: 400 });
+    }
+    apiKey = headersParsed.data["x-api-key"];
+    apiProvider = headersParsed.data["x-api-provider"];
   }
-  const { "x-api-key": apiKey, "x-api-provider": apiProvider } = headersParsed.data;
+  
   console.log(`   API Provider: ${apiProvider}`);
 
   // Check if tile is already being processed

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams as useSearchParamsHook } from "next/navigati
 import dynamic from "next/dynamic";
 import { useClient } from "./ClientProvider";
 import ApiKeyModal, { type ApiProvider } from "./ApiKeyModal";
+import { signedFetch } from "@/lib/requestSigning";
 
 const TileControls = dynamic(() => import("./TileControls"), { ssr: false });
 
@@ -24,7 +25,7 @@ export default function MapClient() {
   const updateTimeoutRef = useRef<any>(undefined);
   
   // API Key management
-  const { apiKeyState, setApiKey, clearApiKey } = useClient();
+  const { apiKeyState, setApiKey, getDecryptedApiKey, clearApiKey } = useClient();
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState<string>("");
 
@@ -121,21 +122,48 @@ export default function MapClient() {
   const handleGenerate = useCallback(async (x: number, y: number, prompt: string) => {
     // Check if API key is set
     if (!apiKeyState.apiKey) {
+      console.log('🔐 No API key in state, showing modal');
       setCurrentPrompt(prompt);
       setShowApiKeyModal(true);
       return;
     }
 
     try {
-      const response = await fetch(`/api/claim/${MAX_Z}/${x}/${y}`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "X-API-Key": apiKeyState.apiKey,
-          "X-API-Provider": apiKeyState.provider || "Google"
-        },
-        body: JSON.stringify({ prompt })
-      });
+      // Get decrypted API key
+      const decryptedApiKey = await getDecryptedApiKey();
+      if (!decryptedApiKey) {
+        console.error('🔐 Failed to get decrypted API key for tile generation');
+        console.log('🔐 Current API key state:', apiKeyState);
+        setShowApiKeyModal(true);
+        return;
+      }
+
+      // Use signed requests for enhanced security
+      const USE_SIGNED_REQUESTS = false; // Set to true to enable request signing
+      
+      let response: Response;
+      if (USE_SIGNED_REQUESTS) {
+        // Signed request - API key never transmitted
+        response = await signedFetch(`/api/claim/${MAX_Z}/${x}/${y}`, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "X-API-Provider": apiKeyState.provider || "Google"
+          },
+          body: JSON.stringify({ prompt })
+        }, decryptedApiKey);
+      } else {
+        // Traditional request with API key in header
+        response = await fetch(`/api/claim/${MAX_Z}/${x}/${y}`, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "X-API-Key": decryptedApiKey,
+            "X-API-Provider": apiKeyState.provider || "Google"
+          },
+          body: JSON.stringify({ prompt })
+        });
+      }
       
       if (response.ok) {
         // Start polling for completion
@@ -150,7 +178,7 @@ export default function MapClient() {
       console.error("Failed to generate tile:", error);
       throw error;
     }
-  }, [map, apiKeyState]);
+  }, [map, apiKeyState, getDecryptedApiKey]);
 
   // Handle tile regeneration
   const handleRegenerate = useCallback(async (x: number, y: number, prompt: string) => {
@@ -162,11 +190,19 @@ export default function MapClient() {
     }
 
     try {
+      // Get decrypted API key
+      const decryptedApiKey = await getDecryptedApiKey();
+      if (!decryptedApiKey) {
+        console.error('Failed to decrypt API key');
+        setShowApiKeyModal(true);
+        return;
+      }
+
       const response = await fetch(`/api/invalidate/${MAX_Z}/${x}/${y}`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "X-API-Key": apiKeyState.apiKey,
+          "X-API-Key": decryptedApiKey,
           "X-API-Provider": apiKeyState.provider || "Google"
         },
         body: JSON.stringify({ prompt })
@@ -184,7 +220,7 @@ export default function MapClient() {
       console.error("Failed to regenerate tile:", error);
       throw error;
     }
-  }, [map, apiKeyState]);
+  }, [map, apiKeyState, getDecryptedApiKey]);
 
   // Handle tile deletion
   const handleDelete = useCallback(async (x: number, y: number) => {
@@ -554,8 +590,8 @@ export default function MapClient() {
       <ApiKeyModal
         isOpen={showApiKeyModal}
         onClose={() => setShowApiKeyModal(false)}
-        onSave={(apiKey: string, provider: ApiProvider) => {
-          setApiKey(apiKey, provider);
+        onSave={async (apiKey: string, provider: ApiProvider) => {
+          await setApiKey(apiKey, provider);
           setShowApiKeyModal(false);
           // If there was a pending prompt and selected tile, execute the generation now
           if (currentPrompt && selectedTile) {

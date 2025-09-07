@@ -1,25 +1,67 @@
 "use client";
 
 import { useState } from "react";
+import { validateApiKey, sanitizeApiKey, getProviderFromKey } from "@/lib/apiKeyValidation";
 
 export type ApiProvider = "Google" | "FAL";
 
 interface ApiKeyModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (apiKey: string, provider: ApiProvider) => void;
+  onSave: (apiKey: string, provider: ApiProvider) => Promise<void>;
 }
 
 const ApiKeyModal = ({ isOpen, onClose, onSave }: ApiKeyModalProps) => {
   const [apiKey, setApiKey] = useState("");
   const [selectedProvider, setSelectedProvider] = useState<ApiProvider>("Google");
+  const [validationError, setValidationError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (apiKey.trim()) {
-      onSave(apiKey.trim(), selectedProvider);
+    setValidationError(null);
+    
+    const cleanKey = sanitizeApiKey(apiKey);
+    if (!cleanKey) {
+      setValidationError("Please enter an API key");
+      return;
+    }
+
+    // Validate the API key
+    const validation = validateApiKey(cleanKey, selectedProvider);
+    if (!validation.isValid) {
+      setValidationError(validation.error!);
+      return;
+    }
+
+    // Auto-detect provider if it doesn't match selection
+    const detectedProvider = getProviderFromKey(cleanKey);
+    if (detectedProvider && detectedProvider !== selectedProvider) {
+      setSelectedProvider(detectedProvider);
+      setValidationError(`This appears to be a ${detectedProvider} API key. Please select the correct provider.`);
+      return;
+    }
+
+    try {
+      await onSave(cleanKey, validation.provider!);
       setApiKey("");
-      onClose(); // Ensure modal closes immediately after saving
+      setValidationError(null);
+      onClose();
+    } catch (error) {
+      setValidationError("Failed to save API key. Please try again.");
+      console.error('Error saving API key:', error);
+    }
+  };
+
+  // Auto-detect provider when user types
+  const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setApiKey(value);
+    setValidationError(null);
+
+    // Auto-detect provider from key format
+    const detectedProvider = getProviderFromKey(value);
+    if (detectedProvider && detectedProvider !== selectedProvider) {
+      setSelectedProvider(detectedProvider);
     }
   };
 
@@ -135,12 +177,21 @@ const ApiKeyModal = ({ isOpen, onClose, onSave }: ApiKeyModalProps) => {
               type="password"
               id="apiKey"
               value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
+              onChange={handleApiKeyChange}
               placeholder={currentProvider.placeholder}
-              className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg bg-white text-gray-900 focus:border-blue-600 focus:outline-none transition-colors"
+              className={`w-full px-4 py-2 border-2 rounded-lg bg-white text-gray-900 focus:outline-none transition-colors ${
+                validationError 
+                  ? 'border-red-500 focus:border-red-600' 
+                  : 'border-gray-300 focus:border-blue-600'
+              }`}
               autoFocus
               required
             />
+            {validationError && (
+              <div className="mt-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-2">
+                {validationError}
+              </div>
+            )}
           </div>
           
           <div className="text-sm text-gray-600 mb-6">
