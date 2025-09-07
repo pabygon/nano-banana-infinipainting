@@ -246,7 +246,9 @@ export default function MapClient() {
             noWrap: true,
             updateWhenIdle: false,
             updateWhenZooming: false,
-            keepBuffer: 0
+            keepBuffer: 0,
+            // Handle 404s by serving default tile
+            errorTileUrl: '/default-tile.webp'
           });
           newTileLayer.addTo(map as any);
           (map as any)._tileLayer = newTileLayer;
@@ -297,7 +299,9 @@ export default function MapClient() {
         noWrap: true,
         updateWhenIdle: false,
         updateWhenZooming: false,
-        keepBuffer: 0
+        keepBuffer: 0,
+        // Handle 404s by serving default tile
+        errorTileUrl: '/default-tile.webp'
       });
       tileLayer.addTo(m);
       
@@ -469,7 +473,9 @@ export default function MapClient() {
                 noWrap: true,
                 updateWhenIdle: false,
                 updateWhenZooming: false,
-                keepBuffer: 0
+                keepBuffer: 0,
+                // Handle 404s by serving default tile
+                errorTileUrl: '/default-tile.webp'
               });
               newTileLayer.addTo(m);
               (m as any)._tileLayer = newTileLayer;

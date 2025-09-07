@@ -35,11 +35,14 @@ export async function GET(_req: NextRequest, { params }:{params:Promise<{z:strin
   // Option 2: Proxy through your API (slower, but maintains control)
   let body = await readTileFile(z, x, y, contentHash);
   if (!body) {
-    console.log(`   Tile not found in R2, serving default tile`);
-    body = await fs.readFile(path.resolve(DEFAULT_PATH));
-  } else {
-    console.log(`   Found tile in R2, buffer size: ${body.length} bytes${contentHash ? ` (hash: ${contentHash})` : ''}`);
+    console.log(`   Tile not found in R2, returning 404`);
+    // Return 404 - let client handle default tiles (best practice for serverless)
+    return new NextResponse(null, { status: 404 });
   }
+  
+  console.log(`   Found tile in R2, buffer size: ${body.length} bytes${contentHash ? ` (hash: ${contentHash})` : ''}`);
+  
+  // Only serve via API if we have actual tile data
 
   const etag = `"${blake2sHex(body).slice(0,16)}"`;
   return new NextResponse(body as any, {
