@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ZMAX, parentOf, childrenOf } from "@/lib/coords";
 import { db } from "@/lib/adapters/db";
-import fs from "node:fs/promises";
-import { tilePath } from "@/lib/storage";
+import { readTileFile } from "@/lib/storage";
 import { generateParentTile } from "@/lib/parentTiles";
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ z: string, x: string, y: string }> }) {
@@ -16,14 +15,17 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ z
   }
 
   try {
-    // Delete the tile file
-    const path = tilePath(z, x, y);
-    await fs.unlink(path).catch(() => {
-      console.log(`   File not found, may already be deleted`);
-    });
+    // Note: R2 files are immutable and use content-based naming, so we don't need to delete the file
+    // The tile will effectively be "deleted" by marking it as EMPTY in the database
+    console.log(`   R2 tile remains in storage but marked as deleted in database`);
     
     // Update database to mark as empty
-    await db.updateTile(z, x, y, { status: "EMPTY", hash: undefined, contentVer: 0 });
+    await db.updateTile(z, x, y, { 
+      status: "EMPTY", 
+      hash: undefined, 
+      contentHash: undefined,
+      contentVer: 0 
+    });
     
     // Regenerate parent tiles up the chain in the background
     (async () => {
@@ -31,16 +33,25 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ z
         let cz = z, cx = x, cy = y;
         while (cz > 0) {
           const p = parentOf(cz, cx, cy);
-          // If any child exists, rebuild the parent; otherwise remove parent and mark EMPTY
+          // If any child exists, rebuild the parent; otherwise mark parent as EMPTY
           const kids = childrenOf(p.z, p.x, p.y);
-          const buffers = await Promise.all(kids.map(k => fs.readFile(tilePath(k.z,k.x,k.y)).catch(() => null)));
+          const buffers = await Promise.all(kids.map(async k => {
+            const tileRecord = await db.getTile(k.z, k.x, k.y);
+            if (tileRecord?.status === "READY" && tileRecord.contentHash) {
+              return await readTileFile(k.z, k.x, k.y, tileRecord.contentHash);
+            }
+            return null;
+          }));
           const hasAnyChild = buffers.some(b => b !== null);
           if (hasAnyChild) {
             await generateParentTile(p.z, p.x, p.y);
           } else {
-            const pPath = tilePath(p.z, p.x, p.y);
-            await fs.unlink(pPath).catch(() => {});
-            await db.updateTile(p.z, p.x, p.y, { status: "EMPTY", hash: undefined, contentVer: 0 });
+            await db.updateTile(p.z, p.x, p.y, { 
+              status: "EMPTY", 
+              hash: undefined, 
+              contentHash: undefined,
+              contentVer: 0 
+            });
           }
           cz = p.z; cx = p.x; cy = p.y;
         }

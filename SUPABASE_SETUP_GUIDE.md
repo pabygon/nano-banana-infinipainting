@@ -41,11 +41,18 @@ USE_SUPABASE_DB=true
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
-# Keep your existing R2 and Gemini settings
-USE_R2_STORAGE=true
+# R2 Storage (REQUIRED - file-based storage has been removed)
 ENABLE_R2_REDIRECT=true
+R2_ACCOUNT_ID=your-cloudflare-account-id
+R2_ACCESS_KEY_ID=your-r2-access-key
+R2_SECRET_ACCESS_KEY=your-r2-secret-key
+R2_DEV_BUCKET=your-dev-bucket-name
+R2_PROD_BUCKET=your-prod-bucket-name
+R2_DEV_PUBLIC_URL=https://your-dev-bucket.r2.dev
+R2_PROD_PUBLIC_URL=https://your-prod-bucket.r2.dev
+
+# Other settings
 GEMINI_API_KEY=your-gemini-key
-# ... your other R2 settings
 ```
 
 ## Step 5: Test the Setup
