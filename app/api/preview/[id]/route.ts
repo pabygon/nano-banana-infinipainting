@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs/promises";
 import path from "path";
 import sharp from "sharp";
 import { readTileFile } from "@/lib/storage";
@@ -52,11 +51,14 @@ export async function GET(
     
     const url = new URL(req.url);
     const mode = url.searchParams.get('mode') || 'raw';
-    const previewPath = path.join(process.cwd(), '.temp', `${id}.webp`);
+    const { previewStorage } = await import("@/lib/adapters/preview.adapter");
     
-    let raw: Buffer;
+    let raw: Buffer | null;
     try {
-      raw = await fs.readFile(previewPath);
+      raw = await previewStorage.get(id);
+      if (!raw) {
+        return NextResponse.json({ error: "Preview not found" }, { status: 404 });
+      }
     } catch (err) {
       return NextResponse.json({ error: "Preview not found" }, { status: 404 });
     }

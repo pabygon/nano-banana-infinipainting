@@ -1,5 +1,5 @@
 import { db } from './adapters/db';
-import { withFileLock } from './adapters/lock.file';
+import { withFileLock } from './adapters/lock.adapter';
 
 const LOCK_DURATION = 2 * 60 * 1000; // 2 minutes in milliseconds
 

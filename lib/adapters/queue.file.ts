@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { QUEUE_DIR } from "../paths";
 import { Queue } from "./queue";
-import { withFileLock } from "./lock.file";
+import { withFileLock } from "./lock.adapter";
 import { generateTile } from "../generator";
 import { bubbleHashes } from "../hashing";
 

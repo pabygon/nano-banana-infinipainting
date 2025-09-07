@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import sharp from "sharp";
-import fs from "fs/promises";
 import path from "path";
 import { generateGridPreview } from "@/lib/generator";
 import { readTileFile } from "@/lib/storage";
@@ -172,13 +171,10 @@ export async function POST(
     // Generate the preview with API key
     const finalComposite = await generateGridPreview(z, x, y, prompt, apiKey, apiProvider);
     
-    // Save preview to temporary location
-    const tempDir = path.join(process.cwd(), '.temp');
-    await fs.mkdir(tempDir, { recursive: true });
-    
+    // Save preview using adaptive storage
     const previewId = `preview-${z}-${x}-${y}-${Date.now()}`;
-    const previewPath = path.join(tempDir, `${previewId}.webp`);
-    await fs.writeFile(previewPath, finalComposite);
+    const { previewStorage } = await import("@/lib/adapters/preview.adapter");
+    await previewStorage.store(previewId, finalComposite);
     
     console.log(`Generation completed for tile ${z}/${x}/${y}, preview saved as ${previewId}`);
     

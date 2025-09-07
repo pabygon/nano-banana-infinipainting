@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import sharp from "sharp";
-import fs from "fs/promises";
 import path from "path";
 import { writeTileFile, readTileFile } from "@/lib/storage";
 import { db } from "@/lib/adapters/db";
@@ -9,7 +8,7 @@ import { TILE, parentOf } from "@/lib/coords";
 import { blake2sHex } from "@/lib/hashing";
 import { generateParentTile } from "@/lib/parentTiles";
 import { acquireGenerationLock, releaseGenerationLock } from "@/lib/generationLock";
-import { withFileLock } from "@/lib/adapters/lock.file";
+import { withFileLock } from "@/lib/adapters/lock.adapter";
 
 const TILE_SIZE = TILE;
 
@@ -99,12 +98,14 @@ export async function POST(
     }
     
     const previewId = previewMatch[1];
-    const previewPath = path.join(process.cwd(), '.temp', `${previewId}.webp`);
-    
-    // Load the preview composite
-    let compositeBuffer: Buffer;
+    // Load the preview composite using adaptive storage
+    const { previewStorage } = await import("@/lib/adapters/preview.adapter");
+    let compositeBuffer: Buffer | null;
     try {
-      compositeBuffer = await fs.readFile(previewPath);
+      compositeBuffer = await previewStorage.get(previewId);
+      if (!compositeBuffer) {
+        return NextResponse.json({ error: "Preview not found" }, { status: 404 });
+      }
     } catch (err) {
       return NextResponse.json({ error: "Preview not found" }, { status: 404 });
     }
@@ -201,7 +202,7 @@ export async function POST(
     
     // Clean up preview file
     try {
-      await fs.unlink(previewPath);
+      await previewStorage.delete(previewId);
     } catch (err) {
       // Ignore cleanup errors
     }

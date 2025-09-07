@@ -1,4 +1,6 @@
 import fs from "node:fs/promises";
+import path from "node:path";
+
 const STYLE_PATH = process.env.STYLE_PATH ?? "./public/style-control/config.json";
 const STYLE_REF = process.env.STYLE_REF ?? "./public/style-control/ref.png";
 
