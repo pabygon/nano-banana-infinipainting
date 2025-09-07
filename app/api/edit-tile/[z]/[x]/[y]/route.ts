@@ -7,6 +7,8 @@ import { generateGridPreview } from "@/lib/generator";
 import { readTileFile } from "@/lib/storage";
 import { db } from "@/lib/adapters/db.file";
 import { TILE } from "@/lib/coords";
+import { acquireGenerationLock, releaseGenerationLock } from "@/lib/generationLock";
+import { getUserId } from "@/lib/userSession";
 
 const TILE_SIZE = TILE;
 
@@ -129,16 +131,28 @@ export async function POST(
   req: NextRequest,
   context: { params: Promise<{ z: string; x: string; y: string }> }
 ) {
+  const params = await context.params;
+  const z = parseInt(params.z, 10);
+  const x = parseInt(params.x, 10);
+  const y = parseInt(params.y, 10);
+  
+  const userId = getUserId(req);
+  const body = await req.json();
+  const { prompt } = requestSchema.parse(body);
+  
+  // Verify user has the generation lock for the center tile (should have been acquired when modal opened)
+  const centerTile = await db.getTile(z, x, y);
+  if (!centerTile?.locked || centerTile.locked_by !== userId) {
+    return NextResponse.json(
+      { error: "Generation lock required to edit tile" },
+      { status: 423 }
+    );
+  }
+  
   try {
-    const params = await context.params;
-    const z = parseInt(params.z, 10);
-    const x = parseInt(params.x, 10);
-    const y = parseInt(params.y, 10);
+    console.log(`Starting generation for tile ${z}/${x}/${y} with prompt: "${prompt}"`);
     
-    const body = await req.json();
-    const { prompt } = requestSchema.parse(body);
-    
-    // Ask the generator for a full 3×3 composite (RAW model output)
+    // Generate the preview
     const finalComposite = await generateGridPreview(z, x, y, prompt);
     
     // Save preview to temporary location
@@ -149,9 +163,15 @@ export async function POST(
     const previewPath = path.join(tempDir, `${previewId}.webp`);
     await fs.writeFile(previewPath, finalComposite);
     
-    return NextResponse.json({ previewUrl: `/api/preview/${previewId}`, previewId });
+    console.log(`Generation completed for tile ${z}/${x}/${y}, preview saved as ${previewId}`);
+    
+    return NextResponse.json({ 
+      previewUrl: `/api/preview/${previewId}`, 
+      previewId 
+    });
+    
   } catch (error) {
-    console.error("Edit tile error:", error);
+    console.error(`Generation failed for tile ${z}/${x}/${y}:`, error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to edit tile" },
       { status: 500 }

@@ -8,6 +8,9 @@ import { db } from "@/lib/adapters/db.file";
 import { TILE, parentOf } from "@/lib/coords";
 import { blake2sHex } from "@/lib/hashing";
 import { generateParentTile } from "@/lib/parentTiles";
+import { acquireGenerationLock, releaseGenerationLock } from "@/lib/generationLock";
+import { getUserId } from "@/lib/userSession";
+import { withFileLock } from "@/lib/adapters/lock.file";
 
 const TILE_SIZE = TILE;
 
@@ -70,14 +73,26 @@ export async function POST(
   req: NextRequest,
   context: { params: Promise<{ z: string; x: string; y: string }> }
 ) {
+  const params = await context.params;
+  const z = parseInt(params.z, 10);
+  const centerX = parseInt(params.x, 10);
+  const centerY = parseInt(params.y, 10);
+  
+  const userId = getUserId(req);
+  const body = await req.json();
+  const { previewUrl, applyToAllNew, newTilePositions, selectedPositions } = requestSchema.parse(body);
+  
+  // Verify user has the generation lock for the center tile (should have been acquired when modal opened)
+  const centerTile = await db.getTile(z, centerX, centerY);
+  if (!centerTile?.locked || centerTile.locked_by !== userId) {
+    return NextResponse.json(
+      { error: "Generation lock required to confirm edit" },
+      { status: 423 }
+    );
+  }
+  
   try {
-    const params = await context.params;
-    const z = parseInt(params.z, 10);
-    const centerX = parseInt(params.x, 10);
-    const centerY = parseInt(params.y, 10);
-    
-    const body = await req.json();
-    const { previewUrl, applyToAllNew, newTilePositions, selectedPositions } = requestSchema.parse(body);
+    console.log(`Starting confirm-edit for tile ${z}/${centerX}/${centerY}`);
     
     // Extract preview ID from URL
     const previewMatch = previewUrl.match(/\/api\/preview\/(preview-[\d-]+)/);
@@ -102,11 +117,13 @@ export async function POST(
       ? new Set(selectedPositions.map(p => `${p.x},${p.y}`))
       : null;
 
-    // Build a radial mask once and slice per tile
-    const mask3x3 = await createCircularGradientMask(TILE_SIZE * 3);
+    // Use file lock for the entire update operation
+    const result = await withFileLock(`confirm-edit-${z}-${centerX}-${centerY}`, async () => {
+      // Build a radial mask once and slice per tile
+      const mask3x3 = await createCircularGradientMask(TILE_SIZE * 3);
 
-    // Save tiles with blending for existing ones
-    const updatedPositions: { x:number, y:number }[] = [];
+      // Save tiles with blending for existing ones
+      const updatedPositions: { x:number, y:number }[] = [];
     for (let dy = -1; dy <= 1; dy++) {
       for (let dx = -1; dx <= 1; dx++) {
         const tileX = centerX + dx;
@@ -175,6 +192,15 @@ export async function POST(
       levelZ -= 1;
     }
     
+      return { 
+        success: true,
+        message: "Tiles updated successfully",
+        updatedPositions
+      };
+    });
+    
+    console.log(`Confirm-edit completed for tile ${z}/${centerX}/${centerY}`);
+    
     // Clean up preview file
     try {
       await fs.unlink(previewPath);
@@ -182,10 +208,8 @@ export async function POST(
       // Ignore cleanup errors
     }
     
-    return NextResponse.json({ 
-      success: true,
-      message: "Tiles updated successfully",
-    });
+    return NextResponse.json(result);
+    
   } catch (error) {
     console.error("Confirm edit error:", error);
     return NextResponse.json(

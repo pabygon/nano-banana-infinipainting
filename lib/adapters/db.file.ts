@@ -36,6 +36,10 @@ export class FileDB implements DB {
       contentVer: tr.contentVer ?? current?.contentVer ?? 1,
       createdAt: current?.createdAt ?? now,
       updatedAt: now,
+      // Handle generation lock fields
+      locked: tr.locked ?? current?.locked ?? false,
+      locked_at: tr.locked_at ?? current?.locked_at,
+      locked_by: tr.locked_by ?? current?.locked_by,
     };
     if (tr.status) merged.status = tr.status;
     await fs.writeFile(metaPath(tr.z,tr.x,tr.y), JSON.stringify(merged));
@@ -54,6 +58,10 @@ export class FileDB implements DB {
       contentVer: patch.contentVer ?? cur?.contentVer ?? 1,
       createdAt: cur?.createdAt ?? now,
       updatedAt: now,
+      // Handle generation lock fields
+      locked: patch.locked ?? cur?.locked ?? false,
+      locked_at: patch.locked_at ?? cur?.locked_at,
+      locked_by: patch.locked_by ?? cur?.locked_by,
     };
     await fs.writeFile(metaPath(z,x,y), JSON.stringify(merged));
     return merged;

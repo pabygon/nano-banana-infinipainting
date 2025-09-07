@@ -9,6 +9,10 @@ export interface TileRecord {
   contentVer?: number;    // increments on change
   updatedAt?: string;     // ISO date
   createdAt?: string;     // ISO date
+  // Simple generation lock fields
+  locked?: boolean;       // true when generating
+  locked_at?: string;     // ISO timestamp when lock acquired
+  locked_by?: string;     // user/client ID
 }
 
 export interface DB {
