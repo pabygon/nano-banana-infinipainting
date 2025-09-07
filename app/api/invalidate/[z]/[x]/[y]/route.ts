@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/adapters/db";
-import { fileQueue } from "@/lib/adapters/queue.file";
+import { queue } from "@/lib/adapters/queue.adapter";
 import { z as zod } from "zod";
 
 const requestSchema = zod.object({
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest, { params }:{params:Promise<{z:strin
   if (!t) return NextResponse.json({ error:"Tile not found" }, { status:404 });
 
   await db.updateTile(z,x,y, { status:"PENDING", contentVer:(t.contentVer??0)+1 });
-  await fileQueue.enqueue(`regen-${z}-${x}-${y}`, { z,x,y,prompt,apiKey,apiProvider });
+  await queue.enqueue(`regen-${z}-${x}-${y}`, { z,x,y,prompt,apiKey,apiProvider });
 
   return NextResponse.json({ ok:true });
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ZMAX } from "@/lib/coords";
 import { z as zod } from "zod";
 import { db } from "@/lib/adapters/db";
-import { fileQueue } from "@/lib/adapters/queue.file";
+import { queue } from "@/lib/adapters/queue.adapter";
 import { SignatureVerifier } from "@/lib/signatureVerification";
 
 const Body = zod.object({ prompt: zod.string().min(1, "Prompt is required").max(500) });
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest, { params }:{params:Promise<{z:strin
     await db.upsertTile({ z,x,y, status:"PENDING" });        // idempotent mark
     console.log(`   Tile marked as PENDING in database`);
     
-    await fileQueue.enqueue(`gen-${z}-${x}-${y}`, { z,x,y,prompt,apiKey,apiProvider }); // in-process
+    await queue.enqueue(`gen-${z}-${x}-${y}`, { z,x,y,prompt,apiKey,apiProvider }); // in-process
     console.log(`   ✅ Tile generation job enqueued successfully`);
     
     return NextResponse.json({ ok:true, status:"ENQUEUED" });
