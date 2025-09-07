@@ -248,7 +248,7 @@ export default function MapClient() {
             updateWhenZooming: false,
             keepBuffer: 0,
             // Handle 404s by serving default tile
-            errorTileUrl: '/default-tile.webp'
+            errorTileUrl: '/api/default-tile'
           });
           newTileLayer.addTo(map as any);
           (map as any)._tileLayer = newTileLayer;

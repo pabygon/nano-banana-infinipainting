@@ -35,9 +35,41 @@ export async function GET(_req: NextRequest, { params }:{params:Promise<{z:strin
   // Option 2: Proxy through your API (slower, but maintains control)
   let body = await readTileFile(z, x, y, contentHash);
   if (!body) {
-    console.log(`   Tile not found in R2, returning 404`);
-    // Return 404 - let client handle default tiles (best practice for serverless)
-    return new NextResponse(null, { status: 404 });
+    console.log(`   Tile not found in R2, serving default tile`);
+    // Serve default tile for non-existent tiles
+    try {
+      // Generate default tile with a subtle grid pattern
+      const svg = `
+        <svg width="256" height="256" xmlns="http://www.w3.org/2000/svg">
+          <rect width="256" height="256" fill="#808080"/>
+          <g stroke="#707070" stroke-width="1" fill="none">
+            <line x1="0" y1="0" x2="256" y2="0"/>
+            <line x1="0" y1="256" x2="256" y2="256"/>
+            <line x1="0" y1="0" x2="0" y2="256"/>
+            <line x1="256" y1="0" x2="256" y2="256"/>
+            <line x1="128" y1="0" x2="128" y2="256" stroke-dasharray="4,4"/>
+            <line x1="0" y1="128" x2="256" y2="128" stroke-dasharray="4,4"/>
+          </g>
+        </svg>
+      `;
+      
+      const sharp = (await import('sharp')).default;
+      body = await sharp(Buffer.from(svg))
+        .webp({ quality: 80 })
+        .toBuffer();
+      
+      // Return with cache headers but not as immutable since it's a default tile
+      return new NextResponse(body as any, {
+        status: 200,
+        headers: {
+          "Content-Type": "image/webp",
+          "Cache-Control": "public, max-age=3600", // 1 hour cache for default tiles
+        }
+      });
+    } catch (error) {
+      console.error(`   Failed to generate default tile:`, error);
+      return new NextResponse(null, { status: 500 });
+    }
   }
   
   console.log(`   Found tile in R2, buffer size: ${body.length} bytes${contentHash ? ` (hash: ${contentHash})` : ''}`);
