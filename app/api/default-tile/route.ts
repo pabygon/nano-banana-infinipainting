@@ -35,7 +35,7 @@ export async function GET(_req: NextRequest) {
   try {
     const defaultTile = await getDefaultTile();
     
-    return new NextResponse(defaultTile, {
+    return new NextResponse(defaultTile as any, {
       status: 200,
       headers: {
         "Content-Type": "image/webp",
