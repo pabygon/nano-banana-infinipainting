@@ -6,6 +6,29 @@ import { blake2sHex, hashTilePayload } from "./hashing";
 // Removed style loading - using hardcoded style for simplicity
 import ai from "./gemini";
 
+function buildCubistPrompt(subject = "urban desert skyline with cacti and airships", opts: { movement?: string } = {}) {
+  const style = {
+    movement: opts.movement || "Analytical Cubism", // or "Synthetic Cubism"
+    medium: "colored-pencil + ink on textured paper (visible grain, light cross-hatching)",
+    palette: "muted desert tones: terracotta, ochre, sage green, dusty rose, charcoal; low saturation",
+    mechanics:
+      "break all forms into angular, overlapping planar facets; strong diagonals; multiple viewpoints simultaneously (profile + frontal cues); shallow/orthographic depth; hard-edged shadows to separate planes; curves approximated by straight segments",
+    composition:
+      "square, full-bleed image that touches all four edges; design must tile seamlessly on every side (let major lines and shapes exit/enter across edges)",
+    constraints:
+      "no frames, borders, margins, text, logos, drop shadows, gradients, lens effects, photorealistic rendering, anime/cartoon outlines, or 3D render look"
+  };
+
+  return `
+Create a ${style.movement} illustration of ${subject}.
+Use ${style.medium}. Palette: ${style.palette}.
+Composition: ${style.composition}.
+Style mechanics: ${style.mechanics}.
+${style.constraints}.
+Purpose: collaborative mural tile that must continue into neighboring tiles.
+`;
+}
+
 type NeighborDir = "N" | "S" | "E" | "W" | "NE" | "NW" | "SE" | "SW";
 const dirs: [NeighborDir, number, number][] = [
   ["N", 0, -1], ["S", 0, 1], ["E", 1, 0], ["W", -1, 0],
@@ -106,20 +129,10 @@ async function runModel(input: {
     // Convert to base64 for Gemini
     const gridBase64 = gridImage.toString('base64');
 
-    // Build the prompt using hardcoded style (no filesystem complexity)
-    const style = {
-      artistic_movement: "Cubist-style",
-      medium: "colored-pencil/ink texture", 
-      palette_description: "Muted earthy palette, geometric fragments",
-      composition: "Full-bleed, edge-to-edge composition that reaches all four sides; seamless continuation to neighboring tiles",
-      constraints: "Do not add frames, borders, margins, text, drop shadows, or vignettes"
-    };
-    
-    const fullPrompt = `${style.artistic_movement} illustration with ${style.medium}. 
-${style.palette_description}. 
-${style.composition}. 
-${style.constraints}. 
-User instruction: ${input.prompt || 'Include random things in the image'}`;
+    // Build the prompt using the new buildCubistPrompt function
+    const subject = input.prompt || 'Include random things in the image';
+    const fullPrompt = buildCubistPrompt(subject).trim();
+    console.log('🎨 Generated Cubist Prompt (runModel):', fullPrompt);
 
     const userParts: any[] = [
       { text: fullPrompt },
@@ -353,20 +366,9 @@ export async function generateGridPreview(z: number, x: number, y: number, promp
 
     const gridContext = await canvas.composite(compositeImages).png().toBuffer();
 
-    // Send the full grid to the model using hardcoded style (no filesystem complexity)
-    const style = {
-      artistic_movement: "Cubist-style",
-      medium: "colored-pencil/ink texture", 
-      palette_description: "Muted earthy palette, geometric fragments",
-      composition: "Full-bleed, edge-to-edge composition that reaches all four sides; seamless continuation to neighboring tiles",
-      constraints: "Do not add frames, borders, margins, text, drop shadows, or vignettes"
-    };
-    
-    const fullPrompt = `${style.artistic_movement} illustration with ${style.medium}. 
-${style.palette_description}. 
-${style.composition}. 
-${style.constraints}. 
-User instruction: ${prompt}`;
+    // Send the full grid to the model using the new buildCubistPrompt function
+    const fullPrompt = buildCubistPrompt(prompt).trim();
+    console.log('🎨 Generated Cubist Prompt (generateGridPreview):', fullPrompt);
     const contents = [{
       role: 'user',
       parts: [
