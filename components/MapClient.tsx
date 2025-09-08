@@ -284,8 +284,8 @@ export default function MapClient() {
       if (initialLat !== null && initialLng !== null) {
         m.setView([initialLat, initialLng], initialZoom);
       } else {
-        // Default to centered view at the desired initial zoom
-        m.setView(bounds.getCenter(), initialZoom);
+        // Default to specific coordinates Tile (158, 131) for first-time visitors
+        m.setView([-131, 158], initialZoom);
       }
 
       // Add timestamp to force fresh tiles on page load
