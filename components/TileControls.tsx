@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { TileGenerateModal } from "./TileGenerateModal";
+import { DELETION_ENABLED } from "@/lib/config";
 
 interface TileControlsProps {
   x: number;
@@ -89,26 +90,28 @@ export default function TileControls({ x, y, z, exists, onGenerate, onRegenerate
               </Tooltip.Portal>
             </Tooltip.Root>
 
-            <Tooltip.Root>
-              <Tooltip.Trigger asChild>
-                <button 
-                  className="w-7 h-7 rounded border border-red-700 bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition-all hover:scale-110 hover:shadow-lg" 
-                  title="Delete tile"
-                  onClick={handleDelete}
-                >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M6 2h4v1H6V2zM4 4v9a1 1 0 001 1h6a1 1 0 001-1V4H4zm2 2v5H5V6h1zm2 0v5H7V6h1zm2 0v5H9V6h1z" fill="currentColor"/>
-                    <path d="M3 4h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                </button>
-              </Tooltip.Trigger>
-              <Tooltip.Portal>
-                <Tooltip.Content className="bg-gray-900 text-white px-2 py-1 rounded text-xs leading-none z-[10002]" sideOffset={5}>
-                  Delete tile
-                  <Tooltip.Arrow className="fill-gray-900" />
-                </Tooltip.Content>
-              </Tooltip.Portal>
-            </Tooltip.Root>
+            {DELETION_ENABLED && (
+              <Tooltip.Root>
+                <Tooltip.Trigger asChild>
+                  <button 
+                    className="w-7 h-7 rounded border border-red-700 bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition-all hover:scale-110 hover:shadow-lg" 
+                    title="Delete tile"
+                    onClick={handleDelete}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M6 2h4v1H6V2zM4 4v9a1 1 0 001 1h6a1 1 0 001-1V4H4zm2 2v5H5V6h1zm2 0v5H7V6h1zm2 0v5H9V6h1z" fill="currentColor"/>
+                      <path d="M3 4h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                  </button>
+                </Tooltip.Trigger>
+                <Tooltip.Portal>
+                  <Tooltip.Content className="bg-gray-900 text-white px-2 py-1 rounded text-xs leading-none z-[10002]" sideOffset={5}>
+                    Delete tile
+                    <Tooltip.Arrow className="fill-gray-900" />
+                  </Tooltip.Content>
+                </Tooltip.Portal>
+              </Tooltip.Root>
+            )}
           </>
         )}
       </Tooltip.Provider>
