@@ -223,30 +223,33 @@ export default function MapClient() {
       });
       
       if (response.ok) {
-        // Force refresh tiles with a cache-busting URL so the deleted
-        // tile is immediately replaced by the default image.
+        // Force complete refresh of tile layer to clear all cached tiles
+        // This ensures parent tiles at all zoom levels are refreshed
+        const L = await import('leaflet');
         const tileLayer = (map as any)?._tileLayer;
-        if (tileLayer?.setUrl) {
-          tileLayer.setUrl(`/api/tiles/{z}/{x}/{y}?v=${Date.now()}`);
-        } else if (tileLayer) {
-          // Fallback: remove/re-add the layer with a new timestamped template
-          const L = await import('leaflet');
+        if (tileLayer) {
           (map as any).removeLayer(tileLayer);
-          const newTileLayer = L.tileLayer(`/api/tiles/{z}/{x}/{y}?v=${Date.now()}`, { 
-            tileSize: 256, 
-            minZoom: 0, 
-            maxZoom: MAX_Z, 
-            noWrap: true,
-            updateWhenIdle: false,
-            updateWhenZooming: false,
-            keepBuffer: 0,
-            // Handle 404s by serving default tile
-            errorTileUrl: '/api/default-tile'
-          });
-          newTileLayer.addTo(map as any);
-          (map as any)._tileLayer = newTileLayer;
         }
+        
+        // Create new tile layer with timestamp to force refresh all tiles
+        const timestamp = Date.now();
+        const newTileLayer = L.tileLayer(`/api/tiles/{z}/{x}/{y}?v=${timestamp}`, { 
+          tileSize: 256, 
+          minZoom: 0, 
+          maxZoom: MAX_Z, 
+          noWrap: true,
+          updateWhenIdle: false,
+          updateWhenZooming: false,
+          keepBuffer: 0,
+          // Handle 404s by serving default tile
+          errorTileUrl: '/default-tile.webp'
+        });
+        newTileLayer.addTo(map as any);
+        (map as any)._tileLayer = newTileLayer;
+        
         setTileExists(prev => ({ ...prev, [`${x},${y}`]: false }));
+        
+        console.log(`🗑️ Tile deleted and all zoom levels refreshed with timestamp ${timestamp}`);
       }
     } catch (error) {
       console.error("Failed to delete tile:", error);
