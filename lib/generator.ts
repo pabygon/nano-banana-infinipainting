@@ -20,7 +20,7 @@ function buildCubistPrompt(subject = "urban desert skyline with cacti and airshi
   };
 
   return `
-Create a ${style.movement} illustration of ${subject}.
+Create a ${style.movement} illustration following these instractions and incorporating these elements: ${subject}.
 Use ${style.medium}. Palette: ${style.palette}.
 Composition: ${style.composition}.
 Style mechanics: ${style.mechanics}.
