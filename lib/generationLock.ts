@@ -39,7 +39,6 @@ export async function acquireGenerationLock(
         }
         
         // Lock expired, we can take over
-        console.log(`Taking over expired lock for tile ${z}/${tilePos.x}/${tilePos.y}`);
       }
     }
     
@@ -63,8 +62,6 @@ export async function acquireGenerationLock(
         });
       }
     }
-    
-    console.log(`Generation lock acquired for 3x3 grid centered at ${z}/${centerX}/${centerY}`);
     return { success: true };
   });
 }

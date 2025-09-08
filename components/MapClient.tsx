@@ -44,10 +44,8 @@ export default function MapClient() {
   // Handle generate click - check API key before opening modal
   const handleGenerateClick = () => {
     if (!apiKeyState.apiKey) {
-      console.log('🔐 No API key found, showing API key modal');
       setShowApiKeyModal(true);
     } else {
-      console.log('🔐 API key found, opening tile generation modal');
       setForceOpenTileModal(true);
     }
   };
@@ -426,15 +424,10 @@ export default function MapClient() {
         const data = await response.json();
         
         if (data.status === "READY") {
-          console.log(`Tile ready at ${MAX_Z}/${x}/${y}, refreshing...`);
-          
           // Get the tile layer
           const tileLayer = (m as any)._tileLayer;
           if (tileLayer) {
-            // Debug: log all tile keys to find the right format
-            if (tileLayer._tiles) {
-              console.log('Current tile keys:', Object.keys(tileLayer._tiles));
-            }
+            // Check existing tiles
             
             // Try different key formats
             const keys = [
@@ -451,7 +444,6 @@ export default function MapClient() {
                 if (tileEl && tileEl.src) {
                   // Force reload with cache buster
                   tileEl.src = `/api/tiles/${MAX_Z}/${x}/${y}?t=${Date.now()}`;
-                  console.log(`Updated tile src with key ${key}: ${tileEl.src}`);
                   tileFound = true;
                   break;
                 }
@@ -459,7 +451,6 @@ export default function MapClient() {
             }
             
             if (!tileFound) {
-              console.log(`Tile not found in DOM, forcing full redraw`);
               // Remove and re-add the layer with new timestamp
               m.removeLayer(tileLayer);
               const newTileLayer = L.tileLayer(`/api/tiles/{z}/{x}/{y}?v=${Date.now()}`, { 

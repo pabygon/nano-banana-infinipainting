@@ -33,10 +33,6 @@ async function runModel(input: {
   apiKey?: string;
   apiProvider?: string;
 }): Promise<Buffer> {
-  console.log('🎨 Starting Gemini tile generation');
-  console.log('  Prompt:', input.prompt);
-  console.log('  Style:', input.styleName);
-  console.log('  Seed:', input.seedHex);
 
   try {
     // Create a 3x3 grid (768x768) with the center marked for generation
@@ -79,7 +75,6 @@ async function runModel(input: {
 
     // Add existing neighbors
     const neighborCount = input.neighbors.filter(n => n.buf !== null).length;
-    console.log('  Neighbors with content:', neighborCount);
 
     for (const n of input.neighbors) {
       if (n.buf && neighborPositions[n.dir]) {
@@ -102,13 +97,10 @@ async function runModel(input: {
       .png()
       .toBuffer();
 
-    console.log('  Created 3x3 grid context image');
-
     // Debug: Save the grid (enable for debugging)
     const DEBUG_MODE = true; // Set to true to save debug images
     if (DEBUG_MODE) {
       await sharp(gridImage).toFile(`.debug/debug-grid-${input.seedHex}.png`);
-      console.log(`  Saved debug grid: .debug/debug-grid-${input.seedHex}.png`);
     }
 
     // Convert to base64 for Gemini
@@ -150,7 +142,6 @@ User instruction: ${input.prompt || 'Include random things in the image'}`;
 
     const model = 'gemini-2.5-flash-image-preview';
 
-    console.log('  Calling Gemini API with model:', model);
     const startTime = Date.now();
 
     // Use user-provided API key if available, otherwise fallback to environment
@@ -160,7 +151,6 @@ User instruction: ${input.prompt || 'Include random things in the image'}`;
       aiClient = new GoogleGenAI({ apiKey: input.apiKey });
     } else if (input.apiKey && input.apiProvider === "FAL") {
       // TODO: Implement FAL AI support
-      console.log('FAL AI provider selected but not yet implemented, falling back to stub generator');
       return runModelStub(input);
     }
 
@@ -201,20 +191,16 @@ User instruction: ${input.prompt || 'Include random things in the image'}`;
     }
 
     const elapsedTime = Date.now() - startTime;
-    console.log(`  ✅ Image generated successfully in ${elapsedTime}ms`);
 
     // Convert base64 to buffer
     const imgBuffer = Buffer.from(imageBase64, 'base64');
-    console.log(`  Full grid image size: ${imgBuffer.length} bytes`);
 
     // Check the actual dimensions of the returned image
     const metadata = await sharp(imgBuffer).metadata();
-    console.log(`  Returned image dimensions: ${metadata.width}x${metadata.height}`);
 
     // Debug: Save the response
     if (DEBUG_MODE) {
       await sharp(imgBuffer).toFile(`.debug/debug-response-${input.seedHex}.png`);
-      console.log(`  Saved debug response: .debug/debug-response-${input.seedHex}.png`);
     }
 
     // Calculate extraction coordinates based on actual image size
@@ -224,8 +210,6 @@ User instruction: ${input.prompt || 'Include random things in the image'}`;
     let extractHeight = TILE;
 
     if (metadata.width !== gridSize || metadata.height !== gridSize) {
-      console.log(`  ⚠️ Warning: Expected 768x768 but got ${metadata.width}x${metadata.height}`);
-
       if (metadata.width && metadata.height) {
         // Calculate scale factor
         const scale = metadata.width / gridSize;
@@ -235,8 +219,6 @@ User instruction: ${input.prompt || 'Include random things in the image'}`;
         extractTop = Math.floor(TILE * scale);
         extractWidth = Math.floor(TILE * scale);
         extractHeight = Math.floor(TILE * scale);
-
-        console.log(`  Scaling extraction by ${scale.toFixed(2)}x: extracting ${extractWidth}x${extractHeight} from position (${extractLeft}, ${extractTop})`);
       }
     }
 
@@ -252,11 +234,9 @@ User instruction: ${input.prompt || 'Include random things in the image'}`;
       .webp({ quality: 90 })
       .toBuffer();
 
-    console.log(`  Extracted center tile: ${centerTile.length} bytes`);
     return centerTile;
   } catch (error) {
     console.error('❌ Gemini generation error:', error);
-    console.log('  Falling back to stub generator');
     // Fallback to stub generator on error
     return runModelStub(input);
   }
@@ -308,8 +288,6 @@ function edgeRect(dir: NeighborDir): string {
 
 /** Generate a tile preview without saving to disk */
 export async function generateTilePreview(z: number, x: number, y: number, prompt: string, apiKey?: string, apiProvider?: string): Promise<Buffer> {
-  console.log(`\n🎨 generateTilePreview called for z:${z} x:${x} y:${y}`);
-  console.log(`   User prompt: "${prompt}"`);
 
   if (z !== ZMAX) throw new Error("Generation only at max zoom");
 
@@ -319,7 +297,6 @@ export async function generateTilePreview(z: number, x: number, y: number, promp
   const neighbors = await getNeighbors(z, x, y);
   const buf = await runModel({ prompt, styleName, neighbors, seedHex, apiKey, apiProvider });
 
-  console.log(`   ✨ Tile preview generated for z:${z} x:${x} y:${y}\n`);
   return buf;
 }
 
@@ -405,7 +382,6 @@ User instruction: ${prompt}`;
       aiClient = new GoogleGenAI({ apiKey });
     } else if (apiKey && apiProvider === "FAL") {
       // TODO: Implement FAL AI support
-      console.log('FAL AI provider selected but not yet implemented, falling back to stub generator');
       throw new Error('FAL AI not yet implemented');
     }
 
@@ -467,14 +443,11 @@ User instruction: ${prompt}`;
 }
 
 export async function generateTile(z: number, x: number, y: number, prompt: string, apiKey?: string, apiProvider?: string) {
-  console.log(`\n📍 generateTile called for z:${z} x:${x} y:${y}`);
-  console.log(`   User prompt: "${prompt}"`);
 
   if (z !== ZMAX) throw new Error("Generation only at max zoom");
 
   // Mark PENDING (idempotent upsert)
   const rec = await db.upsertTile({ z, x, y, status: "PENDING" });
-  console.log(`   Tile marked as PENDING`);
 
   const styleName = "cubist-earthy-v1"; // Hardcoded for simplicity
   const seedHex = blake2sHex(Buffer.from(`${z}:${x}:${y}:${styleName}:${prompt}`)).slice(0, 8);
@@ -489,7 +462,6 @@ export async function generateTile(z: number, x: number, y: number, prompt: stri
   });
 
   await writeTileFile(z, x, y, buf, bytesHash);
-  console.log(`   Tile file written to disk with hash: ${bytesHash}`);
 
   const updated = await db.updateTile(z, x, y, { 
     status: "READY", 
@@ -498,8 +470,6 @@ export async function generateTile(z: number, x: number, y: number, prompt: stri
     contentVer, 
     seed: seedHex 
   });
-  console.log(`   Tile marked as READY with hash: ${updated.hash}`);
-  console.log(`   ✨ Tile generation complete for z:${z} x:${x} y:${y}\n`);
 
   // Generate parent tiles automatically
   generateParentTilesForChild(z, x, y).catch(err =>
@@ -512,8 +482,6 @@ export async function generateTile(z: number, x: number, y: number, prompt: stri
 async function generateParentTilesForChild(z: number, x: number, y: number) {
   const { generateParentTile } = await import("./parentTiles");
   const { parentOf } = await import("./coords");
-
-  console.log(`   🔄 Generating parent tiles for z:${z} x:${x} y:${y}`);
 
   let currentZ = z;
   let currentX = x;

@@ -22,7 +22,6 @@ export const fileQueue: Queue = {
     // serialize per-tile; run job right away (in-process)
     const key = `${payload.z}/${payload.x}/${payload.y}`;
     if (RUNNING.has(key)) {
-      console.log(`Job already running for tile ${key}, skipping`);
       return; // ignore duplicate bursts
     }
     RUNNING.add(key);

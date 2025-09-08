@@ -93,7 +93,6 @@ export default function TileControls({ x, y, z, exists, onGenerate, onRegenerate
         y={y}
         z={z}
         onUpdate={() => {
-          console.log('Generation successful, updating tiles...');
           // Force tile refresh by adding timestamp to bust cache
           const tiles = document.querySelectorAll('img[src*="/api/tiles/"]');
           tiles.forEach((img: Element) => {
