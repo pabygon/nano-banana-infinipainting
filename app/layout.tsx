@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Script from 'next/script'
 import './globals.css'
 import { ClientProvider } from '@/components/ClientProvider'
 
@@ -14,15 +15,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head>
-        <script
-          defer
+      <body>
+        <Script
+          src="https://datafa.st/js/script.js"
           data-website-id="68be878a04eb7cc891f51612"
           data-domain="endlesscubism.com"
-          src="https://datafa.st/js/script.js">
-        </script>
-      </head>
-      <body>
+          strategy="afterInteractive"
+        />
         <div
           className="sticky top-0 z-50 w-full backdrop-blur supports-[backdrop-filter]:bg-base-100/70"
           role="region"
