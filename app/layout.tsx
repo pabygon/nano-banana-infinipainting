@@ -14,6 +14,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <script
+          defer
+          data-website-id="68be878a04eb7cc891f51612"
+          data-domain="endlesscubism.com"
+          src="https://datafa.st/js/script.js">
+        </script>
+      </head>
       <body>
         <ClientProvider>
           {children}
