@@ -43,8 +43,6 @@ export function TileGenerateModal({ open, onClose, x, y, z, onUpdate }: TileGene
     
     const acquireLock = async () => {
       try {
-        console.log(`Attempting to acquire generation lock for tile ${z}/${x}/${y}`);
-        
         const response = await fetch(`/api/generation-lock/${z}/${x}/${y}`, {
           method: 'POST',
           headers: {
@@ -61,7 +59,6 @@ export function TileGenerateModal({ open, onClose, x, y, z, onUpdate }: TileGene
         }
         
         if (response.ok) {
-          console.log(`Generation lock acquired for tile ${z}/${x}/${y}`);
           setHasLock(true);
           setLockError(null);
         } else {
@@ -384,7 +381,6 @@ export function TileGenerateModal({ open, onClose, x, y, z, onUpdate }: TileGene
     // Release generation lock when closing modal
     if (hasLock && clientId) {
       try {
-        console.log(`Releasing generation lock for tile ${z}/${x}/${y}`);
         await fetch(`/api/generation-lock/${z}/${x}/${y}`, {
           method: 'DELETE',
           headers: { 'X-Client-Id': clientId }

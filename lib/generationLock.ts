@@ -90,9 +90,6 @@ export async function releaseGenerationLock(
       }
     }
     
-    if (releasedCount > 0) {
-      console.log(`Generation lock released for ${releasedCount} tiles in 3x3 grid centered at ${z}/${centerX}/${centerY}`);
-    }
   });
 }
 
@@ -116,7 +113,6 @@ export async function checkGenerationLock(
       
       if (isExpired) {
         // Clean up expired lock for this tile
-        console.log(`Cleaning up expired lock for tile ${z}/${tilePos.x}/${tilePos.y}`);
         await db.updateTile(z, tilePos.x, tilePos.y, {
           locked: false,
           locked_at: undefined,
@@ -162,7 +158,6 @@ export async function canEditTile(
       }
       
       // Lock expired, clean it up
-      console.log(`Cleaning up expired lock for tile ${z}/${tilePos.x}/${tilePos.y}`);
       await db.updateTile(z, tilePos.x, tilePos.y, {
         locked: false,
         locked_at: undefined,
