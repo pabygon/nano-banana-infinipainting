@@ -6,6 +6,31 @@ import { ClientProvider } from '@/components/ClientProvider'
 export const metadata: Metadata = {
   title: 'Endless Cubism',
   description: 'Generative, collaborative, infinite cubism drawing',
+  openGraph: {
+    title: 'Endless Cubism',
+    description: 'Generative, collaborative, infinite cubism drawing',
+    url: 'https://endlesscubism.com',
+    siteName: 'Endless Cubism',
+    images: [
+      {
+        url: '/endlesscubism-og.webp',
+        width: 1200,
+        height: 630,
+        alt: 'Endless Cubism - Generative collaborative infinite cubism drawing',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Endless Cubism',
+    description: 'Generative, collaborative, infinite cubism drawing',
+    site: '@pabygon',
+    creator: '@pabygon',
+    images: ['/endlesscubism-og.webp'],
+  },
+  metadataBase: new URL('https://endlesscubism.com'),
 }
 
 export default function RootLayout({
