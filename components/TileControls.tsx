@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect } from "react";
-import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { TileGenerateModal } from "./TileGenerateModal";
 
@@ -17,10 +16,8 @@ interface TileControlsProps {
   onModalOpenChange?: (open: boolean) => void;
 }
 
-export default function TileControls({ x, y, z, exists, onGenerate, onRegenerate, onDelete, onGenerateClick, forceOpenModal, onModalOpenChange }: TileControlsProps) {
+export default function TileControls({ x, y, z, exists, onGenerate, onRegenerate, onDelete: _onDelete, onGenerateClick, forceOpenModal, onModalOpenChange }: TileControlsProps) {
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   // Handle forced modal opening from parent
   useEffect(() => {
@@ -34,17 +31,7 @@ export default function TileControls({ x, y, z, exists, onGenerate, onRegenerate
     onModalOpenChange?.(open);
   };
 
-  const handleDelete = async () => {
-    setLoading(true);
-    try {
-      await onDelete();
-      setDeleteOpen(false);
-    } catch (error) {
-      console.error("Failed to delete tile:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Deletion capability removed
 
   return (
     <div className="flex gap-1">
@@ -93,51 +80,7 @@ export default function TileControls({ x, y, z, exists, onGenerate, onRegenerate
               </Tooltip.Portal>
             </Tooltip.Root>
 
-            <AlertDialog.Root open={deleteOpen} onOpenChange={setDeleteOpen}>
-              <Tooltip.Root>
-                <Tooltip.Trigger asChild>
-                  <AlertDialog.Trigger asChild>
-                    <button className="w-7 h-7 rounded border border-red-700 bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition-all hover:scale-110 hover:shadow-lg" title="Delete tile">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                      </svg>
-                    </button>
-                  </AlertDialog.Trigger>
-                </Tooltip.Trigger>
-                <Tooltip.Portal>
-                  <Tooltip.Content className="bg-gray-900 text-white px-2 py-1 rounded text-xs leading-none z-[10002]" sideOffset={5}>
-                    Delete tile
-                    <Tooltip.Arrow className="fill-gray-900" />
-                  </Tooltip.Content>
-                </Tooltip.Portal>
-              </Tooltip.Root>
-
-              <AlertDialog.Portal>
-                <AlertDialog.Overlay className="fixed inset-0 bg-black/50 z-[10000]" />
-                <AlertDialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-2xl p-6 w-[90vw] max-w-[450px] max-h-[85vh] z-[10001]">
-                  <AlertDialog.Title className="text-lg font-semibold text-gray-900 m-0">Delete Tile?</AlertDialog.Title>
-                  <AlertDialog.Description className="mt-2 mb-5 text-sm text-gray-600 leading-relaxed">
-                    This will permanently delete the tile at position ({x}, {y}). This action cannot be undone.
-                  </AlertDialog.Description>
-                  <div className="flex gap-2 justify-end">
-                    <AlertDialog.Cancel asChild>
-                      <button className="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled={loading}>
-                        Cancel
-                      </button>
-                    </AlertDialog.Cancel>
-                    <AlertDialog.Action asChild>
-                      <button 
-                        className="px-4 py-2 rounded text-sm font-medium bg-red-500 hover:bg-red-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
-                        onClick={handleDelete}
-                        disabled={loading}
-                      >
-                        {loading ? "Deleting..." : "Delete"}
-                      </button>
-                    </AlertDialog.Action>
-                  </div>
-                </AlertDialog.Content>
-              </AlertDialog.Portal>
-            </AlertDialog.Root>
+            {/* Delete functionality removed */}
           </>
         )}
       </Tooltip.Provider>
