@@ -17,10 +17,10 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <Script
-          src="https://datafa.st/js/script.js"
           data-website-id="68be878a04eb7cc891f51612"
           data-domain="endlesscubism.com"
-          strategy="beforeInteractive"
+          src="https://datafa.st/js/script.js"
+          strategy="afterInteractive"
         />
       </head>
       <body>
