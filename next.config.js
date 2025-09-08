@@ -12,7 +12,7 @@ const nextConfig = {
               "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://datafa.st", // React needs unsafe-eval for dev, datafa.st for analytics
               "style-src 'self' 'unsafe-inline'", // Tailwind CSS needs unsafe-inline
               "img-src 'self' data: https:",
-              "connect-src 'self' https://generativelanguage.googleapis.com https://fal.ai https://*.googleapis.com",
+              "connect-src 'self' https://generativelanguage.googleapis.com https://fal.ai https://*.googleapis.com https://datafa.st",
               "font-src 'self'",
               "object-src 'none'",
               "base-uri 'self'",
