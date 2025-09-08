@@ -262,7 +262,7 @@ export default function MapClient() {
     // Dynamic import for Leaflet to avoid SSR issues
     import('leaflet').then((L) => {
       // Parse initial position from URL
-      const initialZoom = searchParams?.get('z') ? parseInt(searchParams.get('z')!) : 2;
+      const initialZoom = searchParams?.get('z') ? parseInt(searchParams.get('z')!) : 5;
       const initialLat = searchParams?.get('lat') ? parseFloat(searchParams.get('lat')!) : null;
       const initialLng = searchParams?.get('lng') ? parseFloat(searchParams.get('lng')!) : null;
       
@@ -283,7 +283,8 @@ export default function MapClient() {
       if (initialLat !== null && initialLng !== null) {
         m.setView([initialLat, initialLng], initialZoom);
       } else {
-        m.fitBounds(bounds);
+        // Default to centered view at the desired initial zoom
+        m.setView(bounds.getCenter(), initialZoom);
       }
 
       // Add timestamp to force fresh tiles on page load
