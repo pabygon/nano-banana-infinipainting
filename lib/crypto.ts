@@ -23,7 +23,6 @@ class BrowserCrypto {
         ['encrypt', 'decrypt']
       );
       this.isInitialized = true;
-      console.log('🔐 Session encryption key generated');
     } catch (error) {
       console.error('Failed to generate session key:', error);
       throw error;
